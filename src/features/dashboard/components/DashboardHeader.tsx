@@ -1,0 +1,45 @@
+"use client";
+
+import { Bell, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MobileSidebar } from "./MobileSidebar";
+
+export function DashboardHeader() {
+    return (
+        <header className="h-16 md:h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20">
+            <div className="flex items-center gap-4 flex-1">
+                <MobileSidebar />
+                <div className="w-full max-w-md hidden md:block">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                            placeholder="Search"
+                            className="pl-10 h-10 bg-gray-50 border-none rounded-full text-sm w-full"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 md:gap-6 ml-4">
+                <button className="relative text-gray-500 hover:text-gray-700">
+                    <Bell className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                </button>
+
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
+                        <img
+                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop"
+                            alt="User"
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                    <div className="text-sm hidden md:block">
+                        <p className="font-medium text-gray-900">Nneji Christian</p>
+                        <p className="text-xs text-gray-500">nneji@gmail.com</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+}
