@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 import { useState } from "react";
+import { createUserKyc } from "../actions";
 
 interface KYCVerificationFormProps {
     onSuccess: () => void;
@@ -25,7 +26,7 @@ export function KYCVerificationForm({ onSuccess }: KYCVerificationFormProps) {
         register,
         handleSubmit,
         setValue,
-        watch,
+        setError,
         formState: { errors, isSubmitting },
     } = useForm<KYCInput>({
         resolver: zodResolver(kycSchema),
@@ -41,10 +42,29 @@ export function KYCVerificationForm({ onSuccess }: KYCVerificationFormProps) {
     };
 
     const onSubmit = async (data: KYCInput) => {
-        console.log("KYC data:", data);
-        // TODO: Implement actual KYC submission logic
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        onSuccess();
+        try {
+            const formData = new FormData();
+            formData.append("id_type", data.idType);
+            formData.append("id_value", data.idNumber);
+
+            if (data.document instanceof File) {
+                formData.append("verification_file", data.document);
+            } else {
+                setError("root", { message: "Please upload a verification document" });
+                return;
+            }
+
+            const result = await createUserKyc(formData);
+
+            if (result.success) {
+                onSuccess();
+            } else {
+                setError("root", { message: result.error || "Failed to submit KYC" });
+            }
+        } catch (error) {
+            console.error("KYC submission error:", error);
+            setError("root", { message: "An unexpected error occurred" });
+        }
     };
 
     return (
@@ -63,11 +83,17 @@ export function KYCVerificationForm({ onSuccess }: KYCVerificationFormProps) {
                 </div>
                 <h1 className="text-2xl font-bold mb-2">KYC Verification</h1>
                 <p className="text-muted-foreground text-sm">
-                    Create a new password so you can get back into your account.
+                    Complete your identity verification to unlock all features.
                 </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {errors.root && (
+                    <div className="p-3 rounded-lg bg-red-50 text-red-500 text-sm text-center">
+                        {errors.root.message}
+                    </div>
+                )}
+
                 <div className="space-y-2">
                     <label className="text-sm font-medium" htmlFor="idType">
                         ID Type
@@ -131,6 +157,9 @@ export function KYCVerificationForm({ onSuccess }: KYCVerificationFormProps) {
                             </div>
                         )}
                     </div>
+                    {errors.document && (
+                        <p className="text-xs text-red-500">Document is required</p>
+                    )}
                 </div>
 
                 <div className="flex gap-4">
@@ -138,8 +167,9 @@ export function KYCVerificationForm({ onSuccess }: KYCVerificationFormProps) {
                         type="button"
                         variant="outline"
                         className="flex-1 h-12 rounded-xl border-[#C69C2E] text-[#C69C2E] hover:bg-[#FFFBF0]"
+                        onClick={() => window.history.back()}
                     >
-                        Skip
+                        Cancel
                     </Button>
                     <Button
                         type="submit"

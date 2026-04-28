@@ -3,8 +3,11 @@
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MobileSidebar } from "./MobileSidebar";
+import { useSession } from "next-auth/react";
 
 export function DashboardHeader() {
+    const { data: session } = useSession();
+
     return (
         <header className="h-16 md:h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20">
             <div className="flex items-center gap-4 flex-1">
@@ -29,14 +32,14 @@ export function DashboardHeader() {
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
                         <img
-                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop"
-                            alt="User"
+                            src={session?.user?.image || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop"}
+                            alt={session?.user?.name || "User"}
                             className="w-full h-full object-cover"
                         />
                     </div>
                     <div className="text-sm hidden md:block">
-                        <p className="font-medium text-gray-900">Nneji Christian</p>
-                        <p className="text-xs text-gray-500">nneji@gmail.com</p>
+                        <p className="font-medium text-gray-900">{session?.user?.name || "Loading..."}</p>
+                        <p className="text-xs text-gray-500">{session?.user?.email || "loading..."}</p>
                     </div>
                 </div>
             </div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function JobListingSection() {
@@ -19,7 +20,9 @@ export function JobListingSection() {
                         <p className="text-muted-foreground mb-6 leading-relaxed">
                             Malesuada nisl ultricies volutpat suspendisse aliquet. Mus at justo nullam tortor bibendum vitae posuere etiam. Auctor tincidunt quam habitant faucibus arcu.
                         </p>
-                        <Button variant="default" className="bg-[#C69C2E] hover:bg-[#B58B1D] text-white">Get Started</Button>
+                        <Link href="/register">
+                            <Button variant="default" className="bg-[#C69C2E] hover:bg-[#B58B1D] text-white">Get Started</Button>
+                        </Link>
                     </div>
                 </div>
             </div>

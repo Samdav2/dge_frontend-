@@ -1,6 +1,7 @@
 "use client";
 
 import { Send } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface ForgotPasswordSentContentProps {
     email: string;
@@ -8,6 +9,20 @@ interface ForgotPasswordSentContentProps {
 }
 
 export function ForgotPasswordSentContent({ email, onResend }: ForgotPasswordSentContentProps) {
+    const [timeLeft, setTimeLeft] = useState(15);
+
+    useEffect(() => {
+        if (timeLeft > 0) {
+            const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [timeLeft]);
+
+    const handleResendClick = () => {
+        onResend();
+        setTimeLeft(15);
+    };
+
     return (
         <div className="w-full max-w-md mx-auto text-center">
             <div className="flex justify-center mb-8">
@@ -23,10 +38,11 @@ export function ForgotPasswordSentContent({ email, onResend }: ForgotPasswordSen
             </p>
 
             <button
-                className="text-primary text-sm font-medium hover:underline"
-                onClick={onResend}
+                className={`text-sm font-medium ${timeLeft > 0 ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:underline"}`}
+                onClick={handleResendClick}
+                disabled={timeLeft > 0}
             >
-                Resend email
+                {timeLeft > 0 ? `Resend email in ${timeLeft}s` : "Resend or change email"}
             </button>
         </div>
     );

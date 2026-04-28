@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
 
 export function Header() {
     return (
@@ -20,8 +20,12 @@ export function Header() {
                     </nav>
 
                     <div className="flex gap-4">
-                        <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 px-8 rounded-lg hidden md:flex">Login</Button>
-                        <Button variant="default" className="bg-primary text-white hover:bg-primary/90 px-8 rounded-lg">Sign Up</Button>
+                        <Link href="/login">
+                            <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 px-8 rounded-lg hidden md:flex">Login</Button>
+                        </Link>
+                        <Link href="/register">
+                            <Button variant="default" className="bg-primary text-white hover:bg-primary/90 px-8 rounded-lg">Sign Up</Button>
+                        </Link>
                     </div>
                 </div>
             </div>

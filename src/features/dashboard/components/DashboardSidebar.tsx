@@ -24,6 +24,7 @@ const MENU_ITEMS = [
     { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support" },
 ];
 
+
 interface DashboardSidebarProps {
     mobile?: boolean;
 }
@@ -54,8 +55,8 @@ export function DashboardSidebar({ mobile }: DashboardSidebarProps) {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
-                                    ? "bg-[#C69C2E] text-white shadow-md"
-                                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                ? "bg-[#C69C2E] text-white shadow-md"
+                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                                 }`}
                         >
                             <item.icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-400"}`} />

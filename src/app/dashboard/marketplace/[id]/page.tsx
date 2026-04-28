@@ -1,0 +1,77 @@
+"use client";
+
+import { ServiceDetails } from "@/features/marketplace/components/ServiceDetails";
+import { useParams } from "next/navigation";
+import { useService } from "@/features/marketplace/hooks/useMarketplace";
+import { Loader2 } from "lucide-react";
+
+export default function ServiceDetailsPage() {
+    const params = useParams();
+    const id = params.id as string;
+    const { data: backendData, isLoading, error } = useService(id);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <Loader2 className="w-8 h-8 animate-spin text-[#C69C2E]" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center h-96 text-red-500">
+                {(error as Error).message || "Failed to fetch service details"}
+            </div>
+        );
+    }
+
+    if (!backendData) {
+        return (
+            <div className="flex justify-center items-center h-96 text-gray-500">
+                Service not found
+            </div>
+        );
+    }
+
+    // Map backend data to component props
+    const { service, profile, portfolio, user } = backendData;
+
+    // Extract social links from the first portfolio item that has them, or default to empty
+    // The user structure suggests these might be in portfolio items
+    const portfolioItems = portfolio || [];
+    const socialLinks = portfolioItems.find(p => p.website || p.facebook || p.twitter || p.instagram || p.youtube) || {} as Partial<import("@/types/marketplace").PortfolioItem>;
+
+    const mappedService = {
+        id: service.id,
+        title: service.name,
+        description: service.description,
+        price: new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(service.price),
+        originalPrice: service.discount
+            ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(service.price / (1 - service.discount_percent / 100))
+            : undefined,
+        category: "General", // Category is not in the new service object, defaulting to General or we need to fetch it separately if needed
+        image: service.image,
+        status: (service.status as "Active" | "Inactive") || "Active",
+        tags: [service.type, ...(service.status ? [service.status] : [])],
+        longDescription: service.description,
+        aboutJob: service.description,
+        author: {
+            id: service.user_id,
+            name: service.username,
+            role: "Service Provider",
+            image: profile?.avatar_url || service.user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(service.username || 'User')}&background=random`,
+            rating: service.upvotes || 0,
+            reviews: 0,
+            website: socialLinks.website || "",
+            phone: profile?.phone || "",
+            email: user?.email || "", // Map email from user object
+            facebook: socialLinks.facebook || "",
+            twitter: socialLinks.twitter || "",
+            instagram: socialLinks.instagram || "",
+            youtube: socialLinks.youtube || ""
+        }
+    };
+
+    return <ServiceDetails service={mappedService} />;
+}

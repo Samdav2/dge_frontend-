@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface ResetPasswordFormProps {
     onSuccess: () => void;
@@ -16,6 +16,7 @@ interface ResetPasswordFormProps {
 export function ResetPasswordForm({ onSuccess, onFailure }: ResetPasswordFormProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const {
         register,
@@ -26,6 +27,7 @@ export function ResetPasswordForm({ onSuccess, onFailure }: ResetPasswordFormPro
     });
 
     const onSubmit = async (data: ResetPasswordInput) => {
+        setError(null);
         console.log("Reset password data:", data);
         // TODO: Implement actual reset password logic
         // Simulating a random success/failure for demonstration
@@ -33,6 +35,7 @@ export function ResetPasswordForm({ onSuccess, onFailure }: ResetPasswordFormPro
 
         // For demo purposes, let's say if password contains "fail", it fails.
         if (data.password.includes("fail")) {
+            setError("Failed to reset password. Please try again.");
             onFailure();
         } else {
             onSuccess();
@@ -104,8 +107,20 @@ export function ResetPasswordForm({ onSuccess, onFailure }: ResetPasswordFormPro
                     className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-base"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? "Resetting..." : "Reset Password"}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Resetting...
+                        </>
+                    ) : (
+                        "Reset Password"
+                    )}
                 </Button>
+                {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+                        {error}
+                    </div>
+                )}
             </form>
         </div>
     );

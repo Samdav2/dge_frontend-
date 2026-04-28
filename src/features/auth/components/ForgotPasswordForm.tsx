@@ -1,29 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validation";
+import { sendPasswordResetLink } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 interface ForgotPasswordFormProps {
-    onSuccess: () => void;
+    onSuccess: (email: string) => void;
+    defaultEmail?: string;
 }
 
-export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({ onSuccess, defaultEmail }: ForgotPasswordFormProps) {
+    const [error, setError] = useState<string | null>(null);
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
     } = useForm<ForgotPasswordInput>({
         resolver: zodResolver(forgotPasswordSchema),
+        defaultValues: {
+            email: defaultEmail || "",
+        },
     });
 
     const onSubmit = async (data: ForgotPasswordInput) => {
-        console.log("Forgot password data:", data);
-        // TODO: Implement actual forgot password logic
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        onSuccess();
+        setError(null);
+        try {
+            const result = await sendPasswordResetLink(data.email);
+
+            if (result.success) {
+                onSuccess(data.email);
+            } else {
+                setError(result.error || "Failed to send reset link");
+            }
+        } catch (error) {
+            console.error("An unexpected error occurred:", error);
+            setError("An unexpected error occurred. Please try again.");
+        }
     };
 
     return (
@@ -56,8 +73,20 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
                     className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-base"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? "Sending..." : "Send Instruction"}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                        </>
+                    ) : (
+                        "Send Instruction"
+                    )}
                 </Button>
+                {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+                        {error}
+                    </div>
+                )}
             </form>
         </div>
     );

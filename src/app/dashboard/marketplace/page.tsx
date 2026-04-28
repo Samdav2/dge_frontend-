@@ -2,7 +2,7 @@
 
 import { MarketplaceCard } from "@/features/marketplace/components/MarketplaceCard";
 import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -10,90 +10,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-
-const SERVICES = [
-    {
-        title: "Digital Marketing",
-        description: "Make requests drives real traffic. Impressive results always on demand and proven. Excellent service and great results.",
-        price: "₦70,000",
-        category: "Digital Skill",
-        author: {
-            name: "Nneji Christian",
-            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop",
-        },
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["Online"]
-    },
-    {
-        title: "Content Creation",
-        description: "Expert content creation services. High quality articles, blogs, and social media posts tailored to your brand.",
-        price: "₦50,000",
-        category: "Creative Skill",
-        author: {
-            name: "Okoro Ifeoma",
-            image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop",
-            rating: 4.9
-        },
-        image: "https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?q=80&w=2074&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["Learn"]
-    },
-    {
-        title: "Social Media Management",
-        description: "Total organic integer ago aliquet. Efficitur diam ut venenatis tellus in metus. Mi bibendum neque egestas congue quisque egestas diam in arcu cursus.",
-        price: "₦70,000",
-        category: "Marketing Skill",
-        author: {
-            name: "Emeka Chinedu",
-            image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1887&auto=format&fit=crop",
-        },
-        image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1974&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["Social"]
-    },
-    {
-        title: "Content Creation",
-        description: "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.",
-        price: "₦80,000",
-        category: "Creative Skill",
-        author: {
-            name: "Adaobi Nwoye",
-            image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop",
-        },
-        image: "https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=1974&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["Work"]
-    },
-    {
-        title: "SEO Optimization",
-        description: "Aliquam erat volutpat. Ut ageris est nec nunc viverra, eget suscipit eros tincidunt. Nulla facilisi. Etiam gravida felis eget velit dignissim.",
-        price: "₦90,000",
-        category: "Technical Skill",
-        author: {
-            name: "Chijioke Ugo",
-            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop",
-        },
-        image: "https://images.unsplash.com/photo-1571786256017-aee7a0c009b6?q=80&w=2080&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["On-Site"]
-    },
-    {
-        title: "Digital Marketing",
-        description: "Fusce tempor ligula a libero involut, non vulputate metus porttitor. In euismod, justo a bibendum finibus, nunc purus fringilla neque, quis ullamcorper justo elit at est.",
-        price: "₦100,000",
-        category: "Marketing Skill",
-        author: {
-            name: "Sarah Onuoha",
-            image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=1887&auto=format&fit=crop",
-        },
-        image: "https://images.unsplash.com/photo-1533750349088-cd871a92f312?q=80&w=2070&auto=format&fit=crop",
-        status: "Active" as const,
-        tags: ["Product"]
-    }
-];
+import { useServices } from "@/features/marketplace/hooks/useMarketplace";
 
 export default function MarketplacePage() {
+    const { data: services, isLoading, error } = useServices(false);
+
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
@@ -147,11 +68,76 @@ export default function MarketplacePage() {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {SERVICES.map((service, index) => (
-                    <MarketplaceCard key={index} {...service} />
-                ))}
-            </div>
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#C69C2E]" />
+                </div>
+            ) : error ? (
+                <div className="flex justify-center items-center h-64 text-red-500">
+                    {(error as Error).message || "Failed to fetch services"}
+                </div>
+            ) : !services || services.length === 0 ? (
+                <div className="flex justify-center items-center h-64 text-gray-500">
+                    No services found.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {services.map((item: any, index: number) => {
+                        // Handle both old and new response structures for backward compatibility
+                        const service = item.service || item;
+                        const profile = item.profile;
+                        const user = item.user;
+                        const portfolio = item.portfolio || [];
+
+                        // Extract social links from the first portfolio item that has them, or default to empty
+                        const socialLinks = portfolio.find((p: any) => p.website || p.facebook || p.twitter || p.instagram || p.youtube) || {};
+
+                        // Generate random avatar if no avatar_url is provided
+                        // Using ui-avatars.com for reliable random avatars based on username
+                        const avatarUrl = profile?.avatar_url || service.user_picture;
+                        const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(service.username || 'User')}&background=random`;
+
+                        // Debug logging
+                        if (!avatarUrl) {
+                            console.log(`[Marketplace] No avatar_url for ${service.username}, using fallback: ${displayAvatar}`);
+                        }
+
+                        return (
+                            <MarketplaceCard
+                                key={service.id || index}
+                                id={service.id}
+                                title={service.name}
+                                description={service.description}
+                                price={service.price}
+                                discount={service.discount}
+                                discount_percent={service.discount_percent}
+                                type={service.type}
+                                image={service.image}
+                                author={{
+                                    name: service.username,
+                                    image: displayAvatar,
+                                    rating: service.upvotes,
+                                    email: user?.email || service.user_id,
+                                    // Extended profile data
+                                    title: profile?.bio ? profile.bio.substring(0, 50) + "..." : "Service Provider", // Use bio as title/tagline
+                                    description: profile?.bio || "No description available.",
+                                    phone: profile?.phone || "",
+                                    altPhone: "", // Not in new response
+                                    website: socialLinks.website || "",
+                                    facebook: socialLinks.facebook || "",
+                                    youtube: socialLinks.youtube || "",
+                                    twitter: socialLinks.twitter || "",
+                                    instagram: socialLinks.instagram || "",
+                                    reviewsCount: 0, // Not in new response
+                                    media: [] // Not in new response
+                                }}
+                                category={service.categories?.[0]?.name}
+                                status={service.status}
+                            />
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

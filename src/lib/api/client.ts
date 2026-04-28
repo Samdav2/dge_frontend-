@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const BASE_URL = '/api';
+console.log('ApiClient: Forced BASE_URL to:', BASE_URL);
 
 interface RequestConfig extends RequestInit {
     headers?: HeadersInit;
@@ -7,6 +8,7 @@ interface RequestConfig extends RequestInit {
 class ApiClient {
     private async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
         const url = `${BASE_URL}${endpoint}`;
+        console.log(`ApiClient: Requesting ${config.method || 'GET'} ${url}`);
         const headers = {
             'Content-Type': 'application/json',
             ...config.headers,
@@ -51,6 +53,14 @@ class ApiClient {
 
     delete<T>(endpoint: string, config?: RequestConfig) {
         return this.request<T>(endpoint, { ...config, method: 'DELETE' });
+    }
+
+    patch<T>(endpoint: string, body: unknown, config?: RequestConfig) {
+        return this.request<T>(endpoint, {
+            ...config,
+            method: 'PATCH',
+            body: JSON.stringify(body),
+        });
     }
 }
 

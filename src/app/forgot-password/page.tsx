@@ -3,6 +3,7 @@
 import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
 import { ForgotPasswordSentContent } from "@/features/auth/components/ForgotPasswordSentContent";
 import { useState, useEffect } from "react";
+import { sendPasswordResetLink } from "@/features/auth/actions";
 
 const SLIDES = [
     {
@@ -22,8 +23,7 @@ const SLIDES = [
 export default function ForgotPasswordPage() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isSent, setIsSent] = useState(false);
-    // In a real app, you'd probably get this from the form submission
-    const [email, setEmail] = useState("example@gmail.com");
+    const [email, setEmail] = useState("");
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -32,13 +32,13 @@ export default function ForgotPasswordPage() {
         return () => clearInterval(timer);
     }, []);
 
-    const handleSuccess = () => {
+    const handleSuccess = (email: string) => {
+        setEmail(email);
         setIsSent(true);
     };
 
     const handleResend = () => {
-        console.log("Resending email...");
-        // Logic to resend email
+        setIsSent(false);
     };
 
     return (
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                 {isSent ? (
                     <ForgotPasswordSentContent email={email} onResend={handleResend} />
                 ) : (
-                    <ForgotPasswordForm onSuccess={handleSuccess} />
+                    <ForgotPasswordForm onSuccess={handleSuccess} defaultEmail={email} />
                 )}
             </div>
         </div>
