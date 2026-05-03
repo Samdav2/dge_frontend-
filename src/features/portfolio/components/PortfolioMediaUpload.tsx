@@ -12,6 +12,8 @@ interface PortfolioMediaUploadProps {
     onUploadComplete?: (media: PortfolioMedia) => void;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export function PortfolioMediaUpload({ portfolioId, initialMedia = [], onUploadComplete }: PortfolioMediaUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [mediaList, setMediaList] = useState<PortfolioMedia[]>(initialMedia);
@@ -56,22 +58,32 @@ export function PortfolioMediaUpload({ portfolioId, initialMedia = [], onUploadC
             <h3 className="text-lg font-medium">Portfolio Media</h3>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {mediaList.map((media) => (
-                    <div key={media.id} className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
-                        {media.media_type === 'image' ? (
-                            <Image
-                                src={`https://your-s3-bucket-url/${media.s3_key}`}
-                                alt="Portfolio Media"
-                                fill
-                                className="object-cover"
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                Video
-                            </div>
-                        )}
-                    </div>
-                ))}
+                {mediaList.map((media) => {
+                    const mediaSrc = media.s3_key.startsWith('http') 
+                        ? media.s3_key 
+                        : media.s3_key.startsWith('/') 
+                            ? `${BASE_URL}${media.s3_key}` 
+                            : `${BASE_URL}/${media.s3_key}`;
+
+                    return (
+                        <div key={media.id} className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
+                            {media.media_type?.startsWith('image') ? (
+                                <Image
+                                    src={mediaSrc}
+                                    alt="Portfolio Media"
+                                    fill
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <video
+                                    src={mediaSrc}
+                                    controls
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
+                        </div>
+                    );
+                })}
 
                 <button
                     type="button"

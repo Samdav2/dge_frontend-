@@ -12,7 +12,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
-import { updateProfile } from "../actions";
+import { useEffect } from "react";
+import { updateProfile, getProfile } from "../actions";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export function PersonalSettings() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +39,38 @@ export function PersonalSettings() {
         address_line2: "",
         postal_code: "",
     });
+
+    useEffect(() => {
+        async function fetchProfile() {
+            const res = await getProfile();
+            if (res.success && res.data) {
+                const profile = res.data;
+                setFormData({
+                    bio: profile.bio || "",
+                    first_name: profile.first_name || "",
+                    last_name: profile.last_name || "",
+                    phone: profile.phone || "",
+                    date_of_birth: profile.date_of_birth || "",
+                    gender: profile.gender || "",
+                    country: profile.country || "",
+                    state: profile.state || "",
+                    city: profile.city || "",
+                    address_line1: profile.address_line1 || "",
+                    address_line2: profile.address_line2 || "",
+                    postal_code: profile.postal_code || "",
+                });
+
+                if (profile.avatar_url) {
+                    let previewUrl = profile.avatar_url;
+                    if (!previewUrl.startsWith("http")) {
+                        previewUrl = `${BASE_URL}${previewUrl}`;
+                    }
+                    setAvatarPreview(previewUrl);
+                }
+            }
+        }
+        fetchProfile();
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;

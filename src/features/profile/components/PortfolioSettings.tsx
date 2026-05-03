@@ -225,6 +225,28 @@ export function PortfolioSettings() {
             setIsUploadingPhoto(false);
             setIsUploadingVideo(false);
 
+            // Fetch updated portfolio to get newly uploaded media
+            const freshPortfolio = await getUserPortfolio();
+            if (freshPortfolio) {
+                setPortfolio(freshPortfolio);
+                if (freshPortfolio.media && freshPortfolio.media.length > 0) {
+                    const existingPhotos: UploadedFile[] = [];
+                    const existingVideos: UploadedFile[] = [];
+
+                    freshPortfolio.media.forEach((media) => {
+                        const url = getBackendImageUrl(media.s3_key);
+                        if (media.media_type === 'image') {
+                            existingPhotos.push({ preview: url, isExisting: true, media });
+                        } else if (media.media_type === 'video') {
+                            existingVideos.push({ preview: url, isExisting: true, media });
+                        }
+                    });
+
+                    setPhotos(existingPhotos);
+                    setVideos(existingVideos);
+                }
+            }
+
             alert("Portfolio saved successfully!");
         } catch (error) {
             console.error("Failed to save portfolio:", error);

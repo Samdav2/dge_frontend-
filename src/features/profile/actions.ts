@@ -23,6 +23,35 @@ async function getAuthHeaders() {
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+export async function getProfile() {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/profile/get_profile`, {
+            method: "GET",
+            headers,
+        });
+
+        if (response.status === 404) {
+            return { success: true, data: null };
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch profile" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get profile error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
 // Create Profile
 export async function createProfile(formData: FormData) {
     const headers = await getAuthHeaders();

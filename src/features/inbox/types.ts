@@ -90,4 +90,7 @@ export interface WebSocketIncoming {
     channel_name?: string;
     caller_name?: string;
     caller_avatar?: string;
+    // Notification & Negotiation fields
+    notification?: Record<string, unknown>;
+    negotiation_id?: string;
 }

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { Message } from "@/features/inbox/types";
 import { getBackendToken, getCurrentUserId } from "@/features/inbox/actions";
 import { useChatWebSocket } from "@/features/inbox/hooks/useChatWebSocket";
+import { useRouter } from "next/navigation";
 import { useAgoraCall } from "@/features/inbox/hooks/useAgoraCall";
 import { CallModal } from "@/features/inbox/components/CallModal";
 
@@ -15,6 +16,8 @@ interface ChatContextType {
     sendMessage: (conversationId: string, content: string, metadataInfo?: Record<string, unknown>) => void;
     sendRaw: (data: Record<string, unknown>) => void;
     startOutboundCall: (targetUserId: string, targetUserName?: string, targetUserAvatar?: string, conversationId?: string) => void;
+    latestNotification: Record<string, unknown> | null;
+    latestNegotiationUpdate: string | null;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -31,6 +34,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState<Message | null>(null);
+    const [latestNotification, setLatestNotification] = useState<Record<string, unknown> | null>(null);
+    const [latestNegotiationUpdate, setLatestNegotiationUpdate] = useState<string | null>(null);
+    const router = useRouter();
 
     // Call state exactly as it was in InboxLayout
     const [isCallModalOpen, setIsCallModalOpen] = useState(false);
@@ -144,6 +150,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
     }, [pendingChannelName, endCall]);
 
+    const handleNegotiationUpdated = useCallback((negotiationId: string) => {
+        console.log("Global negotiation updated:", negotiationId);
+        setLatestNegotiationUpdate(negotiationId);
+        router.refresh();
+    }, [router]);
+
+    const handleNotificationReceived = useCallback((notification: Record<string, unknown>) => {
+        console.log("Global notification received:", notification);
+        setLatestNotification(notification);
+    }, []);
+
     // WebSocket connection operates globally now
     const { isConnected, sendMessage, sendRaw } = useChatWebSocket({
         token,
@@ -152,6 +169,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         onCallInvite: handleCallInvite,
         onCallAccepted: handleCallAccepted,
         onCallRejected: handleCallRejected,
+        onNegotiationUpdated: handleNegotiationUpdated,
+        onNotificationReceived: handleNotificationReceived,
         onConnect: () => console.log("Global Chat WebSocket connected"),
         onDisconnect: () => console.log("Global Chat WebSocket disconnected"),
     });
@@ -230,7 +249,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         newMessage,
         sendMessage,
         sendRaw,
-        startOutboundCall
+        startOutboundCall,
+        latestNotification,
+        latestNegotiationUpdate,
     };
 
     return (

@@ -10,6 +10,8 @@ interface UseChatWebSocketOptions {
     onCallInvite?: (data: { channelName: string; callerName?: string; callerAvatar?: string; conversationId: string; callerId?: string }) => void;
     onCallAccepted?: (data: { channelName: string; conversationId: string; accepterId?: string }) => void;
     onCallRejected?: (data: { channelName: string; conversationId: string; rejecterId?: string }) => void;
+    onNegotiationUpdated?: (negotiationId: string) => void;
+    onNotificationReceived?: (notification: Record<string, unknown>) => void;
     onConnect?: () => void;
     onDisconnect?: () => void;
     onError?: (error: Event) => void;
@@ -26,7 +28,7 @@ const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
 const MAX_RETRIES = 5;
 
 export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSocketReturn {
-    const { token, conversationId, onMessage, onCallInvite, onCallAccepted, onCallRejected, onConnect, onDisconnect, onError } = options;
+    const { token, conversationId, onMessage, onCallInvite, onCallAccepted, onCallRejected, onNegotiationUpdated, onNotificationReceived, onConnect, onDisconnect, onError } = options;
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const connectionStableTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,6 +41,8 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
     const onCallInviteRef = useRef(onCallInvite);
     const onCallAcceptedRef = useRef(onCallAccepted);
     const onCallRejectedRef = useRef(onCallRejected);
+    const onNegotiationUpdatedRef = useRef(onNegotiationUpdated);
+    const onNotificationReceivedRef = useRef(onNotificationReceived);
     const onConnectRef = useRef(onConnect);
     const onDisconnectRef = useRef(onDisconnect);
     const onErrorRef = useRef(onError);
@@ -49,10 +53,12 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
         onCallInviteRef.current = onCallInvite;
         onCallAcceptedRef.current = onCallAccepted;
         onCallRejectedRef.current = onCallRejected;
+        onNegotiationUpdatedRef.current = onNegotiationUpdated;
+        onNotificationReceivedRef.current = onNotificationReceived;
         onConnectRef.current = onConnect;
         onDisconnectRef.current = onDisconnect;
         onErrorRef.current = onError;
-    }, [onMessage, onCallInvite, onCallAccepted, onCallRejected, onConnect, onDisconnect, onError]);
+    }, [onMessage, onCallInvite, onCallAccepted, onCallRejected, onNegotiationUpdated, onNotificationReceived, onConnect, onDisconnect, onError]);
 
     // Connect to WebSocket
     const connect = useCallback(() => {
@@ -140,6 +146,20 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
                             conversationId: data.conversation_id,
                             rejecterId: data.user_id,
                         });
+                        return;
+                    }
+
+                    // Handle notification
+                    if (data.action === 'notification' && data.notification) {
+                        console.log('WebSocket: Received notification:', data.notification);
+                        onNotificationReceivedRef.current?.(data.notification);
+                        return;
+                    }
+
+                    // Handle negotiation update
+                    if (data.action === 'negotiation_updated' && data.negotiation_id) {
+                        console.log('WebSocket: Received negotiation update:', data.negotiation_id);
+                        onNegotiationUpdatedRef.current?.(data.negotiation_id);
                         return;
                     }
 

@@ -39,7 +39,11 @@ export async function getUserPortfolio(): Promise<UserPortfolio | null> {
             throw new Error("Failed to fetch portfolio");
         }
 
-        return await response.json();
+        const data = await response.json();
+        if (data && data.media_files) {
+            data.media = data.media_files;
+        }
+        return data;
     } catch (error) {
         console.error("Error fetching portfolio:", error);
         return null;
@@ -60,7 +64,11 @@ export async function createUserPortfolio(data: UserPortfolioCreate): Promise<Us
         throw new Error(`Failed to create portfolio: ${errorText}`);
     }
 
-    return await response.json();
+    const resData = await response.json();
+    if (resData && resData.media_files) {
+        resData.media = resData.media_files;
+    }
+    return resData;
 }
 
 export async function updateUserPortfolio(data: UserPortfolioUpdate): Promise<UserPortfolio> {
@@ -77,7 +85,11 @@ export async function updateUserPortfolio(data: UserPortfolioUpdate): Promise<Us
         throw new Error(`Failed to update portfolio: ${errorText}`);
     }
 
-    return await response.json();
+    const resData = await response.json();
+    if (resData && resData.media_files) {
+        resData.media = resData.media_files;
+    }
+    return resData;
 }
 
 export async function uploadPortfolioMedia(portfolioId: string, formData: FormData): Promise<PortfolioMedia> {

@@ -191,6 +191,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.backendToken = user.backendToken;
                 token.backendUser = user.backendUser;
             }
+
+            // Check if token is expired or about to expire
+            if (token.backendToken) {
+                try {
+                    let tokenStr = token.backendToken as string;
+                    if (tokenStr.startsWith('"') && tokenStr.endsWith('"')) {
+                        tokenStr = tokenStr.slice(1, -1);
+                    }
+                    const parts = tokenStr.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+                        const isExpired = Date.now() >= (payload.exp * 1000) - 10000; // 10 seconds buffer
+
+                        if (isExpired) {
+                            console.log("Debug: JWT Callback - Token expired or about to expire, refreshing...");
+                            const cookieStore = await cookies();
+                            const refreshToken = cookieStore.get("refresh_token")?.value;
+                            if (refreshToken) {
+                                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                const apiKey = process.env.BACKEND_API_KEY;
+                                const refreshRes = await fetch(`${backendUrl}/auth/refresh?refresh_token=${refreshToken}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-API-KEY': apiKey || '',
+                                        'accept': 'application/json'
+                                    }
+                                });
+
+                                if (refreshRes.ok) {
+                                    const refreshData = await refreshRes.json();
+                                    console.log("Debug: JWT Callback - Token refresh successful");
+                                    token.backendToken = refreshData.access_token;
+
+                                    if (refreshData.refresh_token) {
+                                        cookieStore.set({
+                                            name: 'refresh_token',
+                                            value: refreshData.refresh_token,
+                                            httpOnly: true,
+                                            secure: true,
+                                            sameSite: 'lax',
+                                            maxAge: 7 * 24 * 60 * 60,
+                                            path: '/',
+                                        });
+                                    }
+                                } else {
+                                    console.error("Debug: JWT Callback - Token refresh failed:", refreshRes.status);
+                                    token.backendToken = undefined;
+                                }
+                            } else {
+                                console.warn("Debug: JWT Callback - No refresh token in cookies.");
+                                token.backendToken = undefined;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error checking or refreshing token in JWT callback:", e);
+                }
+            }
+
             console.log("Debug: JWT Callback - token.backendToken after:", token.backendToken ? "exists" : "MISSING");
             return token;
         },

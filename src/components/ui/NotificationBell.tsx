@@ -1,0 +1,133 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { Bell, Check, Trash2 } from "lucide-react";
+import { getNotifications, markNotificationAsRead, deleteNotification } from "@/features/notifications/actions";
+import { useChatContext } from "@/providers/ChatProvider";
+
+export function NotificationBell() {
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [isOpen, setIsOpen] = useState(false);
+    const { latestNotification } = useChatContext();
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const fetchNotifications = async () => {
+        const res = await getNotifications();
+        if (res.success) {
+            setNotifications(res.data || []);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    useEffect(() => {
+        if (latestNotification) {
+            // Avoid adding duplicates if the notification is already in the list
+            setNotifications(prev => {
+                const exists = prev.some(n => n.id === latestNotification.id);
+                if (exists) return prev;
+                return [latestNotification, ...prev];
+            });
+        }
+    }, [latestNotification]);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const unreadCount = notifications.filter(n => !n?.is_read).length;
+
+    const handleMarkAsRead = async (id: string) => {
+        const res = await markNotificationAsRead(id);
+        if (res.success) {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        }
+    };
+
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const res = await deleteNotification(id);
+        if (res.success) {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        }
+    };
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="relative text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+                )}
+            </button>
+
+            {isOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-50">
+                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <h3 className="font-medium text-gray-900">Notifications</h3>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                            {unreadCount} New
+                        </span>
+                    </div>
+                    
+                    <div className="max-h-[400px] overflow-y-auto">
+                        {notifications.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500 text-sm">
+                                No notifications yet
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-100">
+                                {notifications.map(notification => (
+                                    <div 
+                                        key={notification.id} 
+                                        className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer flex gap-3 ${!notification?.is_read ? 'bg-blue-50/30' : ''}`}
+                                        onClick={() => !notification?.is_read && handleMarkAsRead(notification.id)}
+                                    >
+                                        <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notification?.is_read ? 'bg-primary' : 'bg-transparent'}`} />
+                                        <div className="flex-1">
+                                            <p className={`text-sm ${!notification?.is_read ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                                                {notification.message}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {new Date(notification.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            {!notification?.is_read && (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
+                                                    className="text-gray-400 hover:text-primary transition-colors"
+                                                    title="Mark as read"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={(e) => handleDelete(notification.id, e)}
+                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

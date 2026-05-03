@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Briefcase, Loader2 } from "lucide-react";
 import { NegotiationCard } from "./NegotiationCard";
 import { getMyNegotiations } from "../actions";
+import { useChatContext } from "@/providers/ChatProvider";
 
 interface Negotiation {
     id: string;
@@ -43,6 +44,14 @@ export function NegotiationList() {
     useEffect(() => {
         fetchNegotiations();
     }, []);
+
+    const { latestNegotiationUpdate } = useChatContext();
+
+    useEffect(() => {
+        if (latestNegotiationUpdate) {
+            fetchNegotiations();
+        }
+    }, [latestNegotiationUpdate]);
 
     const currentData = negotiations.filter(n => n.negotiation_type === activeTab);
 

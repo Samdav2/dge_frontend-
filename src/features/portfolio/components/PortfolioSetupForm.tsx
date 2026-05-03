@@ -45,12 +45,20 @@ export function PortfolioSetupForm() {
                 if (data) {
                     setPortfolio(data);
                     const portfolioData = data as any;
+                    let extraData: any = {};
+                    try {
+                        if (portfolioData.category) {
+                            extraData = JSON.parse(portfolioData.category);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse category JSON", e);
+                    }
                     reset({
                         title: portfolioData.title || "",
                         description: portfolioData.description || "",
-                        skills: portfolioData.skills?.join(", ") || "",
-                        experience_years: portfolioData.experience_years || 0,
-                        hourly_rate: portfolioData.hourly_rate || 0,
+                        skills: Array.isArray(extraData.skills) ? extraData.skills.join(", ") : "",
+                        experience_years: extraData.experience_years || 0,
+                        hourly_rate: extraData.hourly_rate || 0,
                     });
                 }
             } catch (error) {
@@ -65,9 +73,16 @@ export function PortfolioSetupForm() {
     const onSubmit = async (data: PortfolioFormValues) => {
         setIsSaving(true);
         try {
+            const extraData = {
+                skills: data.skills.split(",").map((s) => s.trim()).filter(Boolean),
+                experience_years: data.experience_years,
+                hourly_rate: data.hourly_rate,
+            };
+
             const payload = {
-                ...data,
-                skills: data.skills.split(",").map((s) => s.trim()).filter(Boolean)
+                title: data.title,
+                description: data.description,
+                category: JSON.stringify(extraData),
             };
 
             if (portfolio) {
@@ -144,7 +159,19 @@ export function PortfolioSetupForm() {
 
             {portfolio ? (
                 <div className="pt-8 border-t">
-                    <PortfolioMediaUpload portfolioId={portfolio.id} initialMedia={portfolio.media} />
+                    <PortfolioMediaUpload
+                        portfolioId={portfolio.id}
+                        initialMedia={portfolio.media}
+                        onUploadComplete={(newMedia) => {
+                            setPortfolio((prev) => {
+                                if (!prev) return null;
+                                return {
+                                    ...prev,
+                                    media: [...(prev.media || []), newMedia],
+                                };
+                            });
+                        }}
+                    />
                 </div>
             ) : (
                 <div className="pt-8 border-t">
