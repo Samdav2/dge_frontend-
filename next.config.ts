@@ -32,7 +32,8 @@ const nextConfig: NextConfig = {
     console.log('NextConfig: Proxying /api to:', proxyUrl);
     return [
       {
-        source: '/api/:path((?!auth).*)',
+        // Exclude: auth routes AND all /api/admin/* which have custom Next.js handlers
+        source: '/api/:path((?!auth|admin).*)',
         destination: `${proxyUrl}/:path*`,
       },
     ];

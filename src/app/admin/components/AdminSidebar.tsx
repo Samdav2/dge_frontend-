@@ -15,8 +15,10 @@ import {
     Headset,
     TrendingUp,
     Menu,
-    X
+    X,
+    LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 interface SidebarLink {
     name: string;
@@ -167,6 +169,17 @@ export default function AdminSidebar() {
                             </div>
                         </div>
                     </nav>
+                </div>
+
+                {/* Logout Button at bottom */}
+                <div className="p-6 border-t border-slate-50">
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl font-medium text-[13px] text-red-500 hover:bg-red-50 transition-all select-none"
+                    >
+                        <LogOut size={17} />
+                        <span>Logout</span>
+                    </button>
                 </div>
             </aside>
         </>

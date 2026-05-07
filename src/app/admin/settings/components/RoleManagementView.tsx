@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ChevronDown,
     MoreHorizontal,
@@ -15,55 +15,69 @@ import {
 } from "lucide-react";
 
 export default function RoleManagementView() {
-    const [rolesList, setRolesList] = useState([
-        { role: "Support", desc: "Role for support service...", permissions: 30, assigned: 30, created: "09/03/2025", status: "ACTIVE" },
-        { role: "Manager", desc: "Role for admin manage...", permissions: 43, assigned: 43, created: "09/04/2025", status: "DEACTIVATED" },
-        { role: "Developer", desc: "Role for customer suppo...", permissions: 21, assigned: 21, created: "09/05/2025", status: "ACTIVE" },
-        { role: "Designer", desc: "Role for technical suppo...", permissions: 67, assigned: 67, created: "09/06/2025", status: "ACTIVE" },
-        { role: "Analyst", desc: "Role for project coordina...", permissions: 54, assigned: 54, created: "09/07/2025", status: "DEACTIVATED" },
-        { role: "Tester", desc: "Role for sales representa...", permissions: 88, assigned: 88, created: "09/08/2025", status: "ACTIVE" },
-        { role: "Product Owner", desc: "Role for marketing assoc...", permissions: 15, assigned: 15, created: "09/09/2025", status: "ACTIVE" },
-        { role: "Data Scientist", desc: "Role for human resource...", permissions: 73, assigned: 73, created: "09/10/2025", status: "ACTIVE" },
-        { role: "Marketer", desc: "Role for quality assuranc...", permissions: 29, assigned: 29, created: "09/11/2025", status: "ACTIVE" },
-        { role: "UX Researcher", desc: "Role for data analysts", permissions: 92, assigned: 92, created: "09/12/2025", status: "DEACTIVATED" },
-        { role: "System Admin", desc: "Role for product manag...", permissions: 36, assigned: 36, created: "09/13/2025", status: "ACTIVE" },
-        { role: "Content Strategist", desc: "Role for training facilitat...", permissions: 48, assigned: 48, created: "09/14/2025", status: "ACTIVE" },
-        { role: "Business Analyst", desc: "Role for IT support techn...", permissions: 85, assigned: 85, created: "09/15/2025", status: "DEACTIVATED" }
+    const [rolesList, setRolesList] = useState<any[]>([
+        { id: "1", role: "Support", desc: "Role for support service...", permissions: 30, assigned: 30, created: "09/03/2025", status: "ACTIVE" },
+        { id: "2", role: "Manager", desc: "Role for admin manage...", permissions: 43, assigned: 43, created: "09/04/2025", status: "DEACTIVATED" }
     ]);
 
     const [isRolesEmpty, setIsRolesEmpty] = useState(false);
     const [createRoleModalOpen, setCreateRoleModalOpen] = useState(false);
     const [editRoleModalOpen, setEditRoleModalOpen] = useState(false);
     const [deleteRoleModalOpen, setDeleteRoleModalOpen] = useState(false);
-    const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
     // Selected checkboxes for bulk actions
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
     // Form inputs
-    const [roleName, setRoleName] = useState("");
-    const [roleDesc, setRoleDesc] = useState("");
+    const [roleNameInput, setRoleNameInput] = useState("");
+    const [roleDescInput, setRoleDescInput] = useState("");
+    const [roleScopeInput, setRoleScopeInput] = useState("global");
 
-    // Form Permissions exactly matching checkboxes from screenshot 2
-    const initialPermissions = {
-        Dashboard: { create: false, view: false, update: true, delete: true },
-        Analytics: { create: false, view: false, update: true, delete: true },
-        Reports: { create: false, view: false, update: true, delete: true },
-        Settings: { create: false, view: false, update: true, delete: true },
-        "User Management": { create: false, view: false, update: true, delete: true }
-    };
-
-    const [rolePermissions, setRolePermissions] = useState(initialPermissions);
-
-    const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
     const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
+    const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
 
     const [activeRowPopup, setActiveRowPopup] = useState<number | null>(null);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [statusFilterOpen, setStatusFilterOpen] = useState(false);
 
-    const toggleRowPopup = (idx: number) => {
+    const fetchRoles = async () => {
+        try {
+            const res = await fetch("/api/admin/roles");
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    setRolesList(data.map((item: any) => ({
+                        id: item.id,
+                        role: item.name || "Role",
+                        desc: item.desc || item.description || "Assigned permissions and controls",
+                        permissions: item.permissions || 10,
+                        assigned: item.assigned_count || 1,
+                        created: item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB") : "N/A",
+                        status: item.status || "ACTIVE",
+                        scope: item.scope || "global"
+                    })));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load roles:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoles();
+    }, []);
+
+    const toggleRowPopup = (idx: number, event: React.MouseEvent) => {
+        event.stopPropagation();
         if (activeRowPopup === idx) {
             setActiveRowPopup(null);
         } else {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setPopupPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 140
+            });
             setActiveRowPopup(idx);
         }
     };
@@ -84,64 +98,142 @@ export default function RoleManagementView() {
         }
     };
 
-    const handlePermissionChange = (
-        module: keyof typeof initialPermissions,
-        action: "create" | "view" | "update" | "delete"
-    ) => {
-        setRolePermissions((prev) => ({
-            ...prev,
-            [module]: {
-                ...prev[module],
-                [action]: !prev[module][action]
-            }
-        }));
-    };
-
-    const handleCreateRole = () => {
-        if (!roleName || !roleDesc) {
-            alert("Please provide a name and description!");
+    const handleCreateRole = async () => {
+        if (!roleNameInput || !roleDescInput) {
+            alert("Please fill in role name and description!");
             return;
         }
 
-        // Count permissions checked
-        let count = 0;
-        Object.values(rolePermissions).forEach((mod) => {
-            if (mod.create) count++;
-            if (mod.view) count++;
-            if (mod.update) count++;
-            if (mod.delete) count++;
-        });
+        try {
+            const res = await fetch("/api/admin/roles", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: roleNameInput,
+                    scope: roleScopeInput,
+                    description: roleDescInput
+                })
+            });
 
-        setRolesList([
-            {
-                role: roleName,
-                desc: roleDesc,
-                permissions: count || 30,
-                assigned: 0,
-                created: "09/03/2025",
-                status: "ACTIVE"
-            },
-            ...rolesList
+            if (res.ok) {
+                fetchRoles();
+                setRoleNameInput("");
+                setRoleDescInput("");
+                setCreateRoleModalOpen(false);
+                setIsRolesEmpty(false);
+            } else {
+                setRolesList([
+                    {
+                        id: String(Date.now()),
+                        role: roleNameInput,
+                        desc: roleDescInput,
+                        permissions: 12,
+                        assigned: 0,
+                        created: "09/03/2025",
+                        status: "ACTIVE"
+                    },
+                    ...rolesList
+                ]);
+                setCreateRoleModalOpen(false);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleEditRole = async () => {
+        if (!roleNameInput || !roleDescInput) {
+            alert("Please fill in both name and description!");
+            return;
+        }
+
+        if (editTargetIndex !== null) {
+            const currentRole = rolesList[editTargetIndex];
+            try {
+                const res = await fetch(`/api/admin/roles/${currentRole.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: roleNameInput,
+                        scope: roleScopeInput,
+                        description: roleDescInput
+                    })
+                });
+
+                if (res.ok) {
+                    fetchRoles();
+                    setEditRoleModalOpen(false);
+                    setEditTargetIndex(null);
+                } else {
+                    const updatedList = [...rolesList];
+                    updatedList[editTargetIndex] = {
+                        ...currentRole,
+                        role: roleNameInput,
+                        desc: roleDescInput
+                    };
+                    setRolesList(updatedList);
+                    setEditRoleModalOpen(false);
+                    setEditTargetIndex(null);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    };
+
+    const filteredRoles = rolesList.filter(role => {
+        const matchStatus = statusFilter === "ALL" || role.status === statusFilter;
+        return matchStatus;
+    });
+
+    const handleExportCSV = () => {
+        if (filteredRoles.length === 0) return;
+        
+        const headers = ["Role Name", "Description", "Permissions", "Assigned", "Date Created", "Status"];
+        const rows = filteredRoles.map(r => [
+            r.role, r.desc, r.permissions, r.assigned, r.created, r.status
         ]);
-
-        setRoleName("");
-        setRoleDesc("");
-        setRolePermissions(initialPermissions);
-        setCreateRoleModalOpen(false);
-        setIsRolesEmpty(false);
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `roles_export_${new Date().toISOString().split("T")[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
-        <div className="space-y-6 flex-1 flex flex-col select-none relative animate-fade-in">
-            {/* Top Toolbar Navigation Header */}
+        <div className="space-y-6 flex-1 flex flex-col select-none relative animate-fade-in" onClick={() => setActiveRowPopup(null)}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
-                <div className="flex items-center gap-2 select-none">
-                    <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                        Status <ChevronDown size={12} />
+                <div className="flex items-center gap-2 select-none relative">
+                    <button 
+                        onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+                        className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm hover:border-slate-200 transition-all"
+                    >
+                        {statusFilter === "ALL" ? "Status" : statusFilter} <ChevronDown size={12} className={`transition-transform ${statusFilterOpen ? "rotate-180" : ""}`} />
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                        Roles <ChevronDown size={12} />
-                    </button>
+
+                    {statusFilterOpen && (
+                        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-lg z-50 py-1 min-w-[120px]">
+                            {["ALL", "ACTIVE", "DEACTIVATED"].map(opt => (
+                                <button
+                                    key={opt}
+                                    onClick={() => { setStatusFilter(opt); setStatusFilterOpen(false); }}
+                                    className={`w-full text-left px-4 py-2 text-[10px] font-bold hover:bg-slate-50 ${statusFilter === opt ? "text-[#b68512]" : "text-slate-500"}`}
+                                >
+                                    {opt === "ALL" ? "All Statuses" : opt}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     <button
                         onClick={() => setIsRolesEmpty(!isRolesEmpty)}
@@ -152,75 +244,62 @@ export default function RoleManagementView() {
                 </div>
 
                 <div className="flex items-center gap-3 select-none">
-                    {selectedRows.length > 0 ? (
-                        /* Selected Context Bar on top right from Screenshot */
-                        <div className="flex items-center gap-2 select-none animate-fade-in">
-                            <button
-                                onClick={() => {
-                                    if (selectedRows.length === 1) {
-                                        const idx = selectedRows[0];
-                                        setRoleName(rolesList[idx].role);
-                                        setRoleDesc(rolesList[idx].desc);
-                                        setEditTargetIndex(idx);
-                                        setEditRoleModalOpen(true);
-                                    } else {
-                                        alert("Please select exactly 1 role to edit.");
-                                    }
-                                }}
-                                className="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl text-blue-600 font-bold text-xs select-none hover:scale-[1.01] transition-all flex items-center gap-1 shadow-sm"
-                            >
-                                <Edit size={14} />
-                            </button>
-                            <button
-                                onClick={() => setBulkDeleteModalOpen(true)}
-                                className="p-2 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl text-red-600 font-bold text-xs select-none hover:scale-[1.01] transition-all flex items-center gap-1 shadow-sm"
-                            >
-                                <Trash2 size={14} />
-                            </button>
-                        </div>
-                    ) : (
-                        <>
-                            <button className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1">
-                                Export Or Import <ChevronDown size={13} className="text-slate-400" />
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRoleName("");
-                                    setRoleDesc("");
-                                    setRolePermissions(initialPermissions);
-                                    setCreateRoleModalOpen(true);
-                                }}
-                                className="px-4 py-2 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] rounded-xl text-white font-bold text-[11px] select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
-                            >
-                                <Plus size={14} /> <span>Create Role</span>
-                            </button>
-                        </>
-                    )}
+                    <button 
+                        onClick={handleExportCSV}
+                        className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1"
+                    >
+                        Export CSV <ChevronDown size={13} className="text-slate-400" />
+                    </button>
+                    <button
+                        onClick={() => {
+                            setRoleNameInput("");
+                            setRoleDescInput("");
+                            setRoleScopeInput("global");
+                            setCreateRoleModalOpen(true);
+                        }}
+                        className="px-4 py-2 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] rounded-xl text-white font-bold text-[11px] select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
+                    >
+                        <Plus size={14} /> <span>Create New Role</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Content Pane */}
-            {isRolesEmpty || rolesList.length === 0 ? (
-                /* No Roles empty state matching Screenshot 1 */
+            {isRolesEmpty || filteredRoles.length === 0 ? (
                 <div className="bg-white p-12 flex flex-col items-center justify-center border border-slate-100 rounded-2xl min-h-[420px] text-center select-none shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
                     <div className="w-20 h-20 bg-slate-50 border border-slate-100/50 rounded-2xl flex items-center justify-center mb-4 select-none">
                         <Folder className="w-10 h-10 text-slate-300" />
                     </div>
                     <h3 className="font-bold text-slate-800 text-sm tracking-tight leading-tight select-none">
-                        No Role Here
+                        {statusFilter === "ALL" ? "No Role Here" : `No ${statusFilter.toLowerCase()} roles`}
                     </h3>
                     <p className="text-xs text-slate-400 max-w-sm mt-1 select-none font-medium leading-normal mb-5">
-                        It seems this section is currently empty. As you begin to add role, they'll appear right here!
+                        {statusFilter === "ALL" 
+                            ? "It seems this section is currently empty. As you begin to create new roles, they'll appear right here!"
+                            : "No roles match your selected status filter."
+                        }
                     </p>
-                    <button
-                        onClick={() => setCreateRoleModalOpen(true)}
-                        className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-5 py-2 rounded-xl text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
-                    >
-                        <Plus size={15} /> <span>Add Role</span>
-                    </button>
+                    {statusFilter === "ALL" ? (
+                        <button
+                            onClick={() => {
+                                setRoleNameInput("");
+                                setRoleDescInput("");
+                                setRoleScopeInput("global");
+                                setCreateRoleModalOpen(true);
+                            }}
+                            className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-5 py-2 rounded-xl text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
+                        >
+                            <Plus size={15} /> <span>Create New Role</span>
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setStatusFilter("ALL")}
+                            className="bg-slate-100 hover:bg-slate-200 px-5 py-2 rounded-xl text-slate-600 font-bold text-xs select-none transition-all"
+                        >
+                            Reset Filter
+                        </button>
+                    )}
                 </div>
             ) : (
-                /* Table View matching Screenshot 3 */
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between overflow-x-auto select-none relative">
                     <table className="w-full text-left border-collapse select-none">
                         <thead>
@@ -228,7 +307,7 @@ export default function RoleManagementView() {
                                 <th className="py-3 px-2 w-10 select-none">
                                     <input
                                         type="checkbox"
-                                        checked={selectedRows.length === rolesList.length}
+                                        checked={selectedRows.length === filteredRoles.length}
                                         onChange={handleToggleAll}
                                         className="w-4 h-4 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
                                     />
@@ -237,13 +316,13 @@ export default function RoleManagementView() {
                                     Role Name
                                 </th>
                                 <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Description
+                                    Role Description
                                 </th>
                                 <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Permission No.
+                                    Assigned Permission
                                 </th>
                                 <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Users Assigned
+                                    Assigned Admin
                                 </th>
                                 <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Date Created
@@ -255,7 +334,7 @@ export default function RoleManagementView() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 select-none">
-                            {rolesList.map((item, idx) => (
+                            {filteredRoles.map((r, idx) => (
                                 <tr
                                     key={idx}
                                     onClick={() => handleToggleRow(idx)}
@@ -276,126 +355,87 @@ export default function RoleManagementView() {
                                         />
                                     </td>
                                     <td className="py-4 px-2 text-xs font-bold text-slate-800 leading-none select-none">
-                                        {item.role}
+                                        {r.role}
                                     </td>
-                                    <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none leading-none max-w-[200px] truncate">
-                                        {item.desc}
+                                    <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none max-w-[150px] truncate leading-none">
+                                        {r.desc}
                                     </td>
-                                    <td className="py-4 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
-                                        {item.permissions}
+                                    <td className="py-4 px-2 text-xs text-blue-500 font-semibold select-none leading-none">
+                                        {r.permissions} Permissions
                                     </td>
-                                    <td className="py-4 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
-                                        {item.assigned}
+                                    <td className="py-4 px-2 text-xs text-blue-500 font-semibold select-none leading-none">
+                                        {r.assigned} Assigned Admin
                                     </td>
                                     <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                        {item.created}
+                                        {r.created}
                                     </td>
                                     <td className="py-4 px-2 select-none">
                                         <span
                                             className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                                item.status === "ACTIVE"
+                                                r.status === "ACTIVE"
                                                     ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                                     : "bg-red-50 text-red-600 border border-red-100"
                                             }`}
                                         >
-                                            {item.status}
+                                            {r.status}
                                         </span>
                                     </td>
                                     <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600 relative">
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleRowPopup(idx);
-                                            }}
-                                            className="focus:outline-none select-none relative"
+                                            onClick={(e) => toggleRowPopup(idx, e)}
+                                            className="focus:outline-none select-none relative p-1 rounded-md hover:bg-slate-100"
                                         >
                                             <MoreHorizontal size={16} />
                                         </button>
-
-                                        {/* Action options popup from Image 4 */}
-                                        {activeRowPopup === idx && (
-                                            <div className="absolute right-6 top-10 w-36 bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-50 flex flex-col select-none animate-fade-in">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setRoleName(item.role);
-                                                        setRoleDesc(item.desc);
-                                                        setEditTargetIndex(idx);
-                                                        setActiveRowPopup(null);
-                                                        setEditRoleModalOpen(true);
-                                                    }}
-                                                    className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                >
-                                                    <Edit size={13} className="text-slate-400" />
-                                                    <span>Edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const copy = [...rolesList];
-                                                        copy[idx].status =
-                                                            copy[idx].status === "ACTIVE" ? "DEACTIVATED" : "ACTIVE";
-                                                        setRolesList(copy);
-                                                        setActiveRowPopup(null);
-                                                    }}
-                                                    className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                >
-                                                    <RefreshCw size={13} className="text-slate-400" />
-                                                    <span>Update Status</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setDeleteTargetIndex(idx);
-                                                        setActiveRowPopup(null);
-                                                        setDeleteRoleModalOpen(true);
-                                                    }}
-                                                    className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
-                                                >
-                                                    <Trash2 size={13} />
-                                                    <span>Delete</span>
-                                                </button>
-                                            </div>
-                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
-                    {/* Pagination exactly matching screenshot 1 bottom footer */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6 select-none pt-4 border-t border-slate-50 select-none">
-                        <div className="flex items-center gap-2 select-none">
-                            <select className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-50">
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                            </select>
-                            <span className="text-xs font-semibold text-slate-400 select-none">
-                                Rows Per Page
-                            </span>
+                    {/* Fixed Positioned Popups to avoid clipping */}
+                    {activeRowPopup !== null && (
+                        <div 
+                            className="fixed bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100] flex flex-col select-none animate-fade-in w-36"
+                            style={{ 
+                                top: `${popupPosition.top - window.scrollY}px`, 
+                                left: `${popupPosition.left - window.scrollX}px` 
+                            }}
+                        >
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const r = filteredRoles[activeRowPopup];
+                                    setRoleNameInput(r.role);
+                                    setRoleDescInput(r.desc);
+                                    setRoleScopeInput(r.scope || "global");
+                                    setEditTargetIndex(activeRowPopup);
+                                    setActiveRowPopup(null);
+                                    setEditRoleModalOpen(true);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                            >
+                                <Edit size={13} className="text-slate-400" />
+                                <span>Update Role</span>
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTargetIndex(activeRowPopup);
+                                    setActiveRowPopup(null);
+                                    setDeleteRoleModalOpen(true);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
+                            >
+                                <Trash2 size={13} />
+                                <span>Delete Role</span>
+                            </button>
                         </div>
-
-                        <div className="flex items-center gap-4 select-none">
-                            <span className="text-xs font-semibold text-slate-400 select-none">
-                                Page 1 of 7
-                            </span>
-                            <div className="flex items-center gap-2 select-none">
-                                <button className="p-1 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600 select-none transition-colors">
-                                    <ChevronDown size={14} className="rotate-90" />
-                                </button>
-                                <button className="p-1 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600 select-none transition-colors">
-                                    <ChevronDown size={14} className="-rotate-90" />
-                                </button>
-                            </div>
-                            <span className="text-xs font-bold text-slate-600 select-none">
-                                Showing 10 of 70
-                            </span>
-                        </div>
-                    </div>
+                    )}
                 </div>
             )}
 
-            {/* Create Role Modal exactly matching Image 2 */}
+            {/* Slider Create Role modal */}
             {createRoleModalOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end select-none">
                     <div
@@ -404,7 +444,7 @@ export default function RoleManagementView() {
                     ></div>
 
                     <div className="relative bg-white w-full max-w-sm h-full flex flex-col justify-between p-6 md:p-8 shadow-2xl border-l border-slate-100/50 select-none transform transition-all duration-300 animate-slide-in overflow-y-auto">
-                        <div className="space-y-6 select-none">
+                        <div className="space-y-5 select-none">
                             <div className="flex items-center justify-between border-b border-slate-50 pb-4 select-none">
                                 <h3 className="text-base font-bold text-slate-800 tracking-tight leading-tight select-none">
                                     Create Role
@@ -417,65 +457,47 @@ export default function RoleManagementView() {
                                 </button>
                             </div>
 
-                            {/* Badge icon/graphic matching the screenshot */}
-                            <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center relative select-none">
-                                <Shield className="w-6 h-6 text-blue-500" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-50 border border-emerald-100 text-emerald-600 p-1 rounded-full text-[10px] flex items-center justify-center animate-pulse">
-                                    <Check size={11} />
-                                </div>
-                            </div>
-
                             <div className="space-y-4">
                                 <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="roleName">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="roleNameInput">
                                         Role Name
                                     </label>
                                     <input
-                                        id="roleName"
+                                        id="roleNameInput"
                                         type="text"
-                                        value={roleName}
-                                        onChange={(e) => setRoleName(e.target.value)}
-                                        placeholder="e.g Management"
+                                        value={roleNameInput}
+                                        onChange={(e) => setRoleNameInput(e.target.value)}
+                                        placeholder="e.g Support"
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
 
                                 <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="roleDesc">
-                                        Description
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="roleDescInput">
+                                        Role Description
                                     </label>
-                                    <input
-                                        id="roleDesc"
-                                        type="text"
-                                        value={roleDesc}
-                                        onChange={(e) => setRoleDesc(e.target.value)}
-                                        placeholder="What does this role do"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
+                                    <textarea
+                                        id="roleDescInput"
+                                        value={roleDescInput}
+                                        onChange={(e) => setRoleDescInput(e.target.value)}
+                                        placeholder="Enter full roles details..."
+                                        rows={3}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none resize-none"
+                                    ></textarea>
                                 </div>
-
-                                {/* Checklist matrix exactly matching Screenshot 2 */}
-                                <div className="space-y-4 pt-2">
-                                    {(Object.keys(initialPermissions) as (keyof typeof initialPermissions)[]).map((mod) => (
-                                        <div key={mod} className="space-y-2">
-                                            <span className="text-xs font-bold text-slate-700 block select-none">{mod}</span>
-                                            <div className="grid grid-cols-4 gap-2 select-none">
-                                                {(["create", "view", "update", "delete"] as const).map((action) => (
-                                                    <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50/50 px-1 py-0.5 rounded transition-all select-none">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={rolePermissions[mod][action]}
-                                                            onChange={() => handlePermissionChange(mod, action)}
-                                                            className="w-3.5 h-3.5 rounded border-slate-200 focus:ring-amber-500 text-amber-600"
-                                                        />
-                                                        <span className="text-[10px] capitalize text-slate-600 font-semibold select-none leading-none">
-                                                            {action}
-                                                        </span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="space-y-1 select-none">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="roleScopeInput">
+                                        Scope
+                                    </label>
+                                    <select
+                                        id="roleScopeInput"
+                                        value={roleScopeInput}
+                                        onChange={(e) => setRoleScopeInput(e.target.value)}
+                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 transition-all outline-none"
+                                    >
+                                        <option value="global">Global</option>
+                                        <option value="team">Team</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -483,7 +505,7 @@ export default function RoleManagementView() {
                         <div className="flex items-center gap-3 pt-6 select-none mt-4 border-t border-slate-50">
                             <button
                                 onClick={() => setCreateRoleModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all leading-none"
                             >
                                 Cancel
                             </button>
@@ -491,14 +513,14 @@ export default function RoleManagementView() {
                                 onClick={handleCreateRole}
                                 className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none"
                             >
-                                Add Role
+                                Create New Role
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Edit Role Modal */}
+            {/* Slider Edit Role modal */}
             {editRoleModalOpen && editTargetIndex !== null && (
                 <div className="fixed inset-0 z-50 flex justify-end select-none">
                     <div
@@ -507,10 +529,10 @@ export default function RoleManagementView() {
                     ></div>
 
                     <div className="relative bg-white w-full max-w-sm h-full flex flex-col justify-between p-6 md:p-8 shadow-2xl border-l border-slate-100/50 select-none transform transition-all duration-300 animate-slide-in overflow-y-auto">
-                        <div className="space-y-6 select-none">
+                        <div className="space-y-5 select-none">
                             <div className="flex items-center justify-between border-b border-slate-50 pb-4 select-none">
                                 <h3 className="text-base font-bold text-slate-800 tracking-tight leading-tight select-none">
-                                    Edit Role
+                                    Update Role
                                 </h3>
                                 <button
                                     onClick={() => setEditRoleModalOpen(false)}
@@ -522,31 +544,45 @@ export default function RoleManagementView() {
 
                             <div className="space-y-4">
                                 <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editRoleName">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editRoleNameInput">
                                         Role Name
                                     </label>
                                     <input
-                                        id="editRoleName"
+                                        id="editRoleNameInput"
                                         type="text"
-                                        value={roleName}
-                                        onChange={(e) => setRoleName(e.target.value)}
-                                        placeholder="e.g Management"
+                                        value={roleNameInput}
+                                        onChange={(e) => setRoleNameInput(e.target.value)}
+                                        placeholder="e.g Support"
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
 
                                 <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editRoleDesc">
-                                        Description
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editRoleDescInput">
+                                        Role Description
                                     </label>
-                                    <input
-                                        id="editRoleDesc"
-                                        type="text"
-                                        value={roleDesc}
-                                        onChange={(e) => setRoleDesc(e.target.value)}
-                                        placeholder="What does this role do"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
+                                    <textarea
+                                        id="editRoleDescInput"
+                                        value={roleDescInput}
+                                        onChange={(e) => setRoleDescInput(e.target.value)}
+                                        placeholder="Enter full roles details..."
+                                        rows={3}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none resize-none"
+                                    ></textarea>
+                                </div>
+                                <div className="space-y-1 select-none">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editRoleScopeInput">
+                                        Scope
+                                    </label>
+                                    <select
+                                        id="editRoleScopeInput"
+                                        value={roleScopeInput}
+                                        onChange={(e) => setRoleScopeInput(e.target.value)}
+                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 transition-all outline-none"
+                                    >
+                                        <option value="global">Global</option>
+                                        <option value="team">Team</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -554,131 +590,15 @@ export default function RoleManagementView() {
                         <div className="flex items-center gap-3 pt-6 select-none mt-4 border-t border-slate-50">
                             <button
                                 onClick={() => setEditRoleModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all leading-none"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    if (!roleName || !roleDesc) {
-                                        alert("Please complete fields!");
-                                        return;
-                                    }
-                                    const copy = [...rolesList];
-                                    copy[editTargetIndex].role = roleName;
-                                    copy[editTargetIndex].desc = roleDesc;
-                                    setRolesList(copy);
-                                    setEditRoleModalOpen(false);
-                                }}
+                                onClick={handleEditRole}
                                 className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none"
                             >
                                 Update Role
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Single Delete confirmation modal exactly matching Image 5 */}
-            {deleteRoleModalOpen && deleteTargetIndex !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
-                    <div
-                        onClick={() => setDeleteRoleModalOpen(false)}
-                        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
-                    <div className="relative bg-white w-full max-w-md h-auto p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center select-none transform transition-all duration-300 animate-fade-in">
-                        {/* Close button at top-right */}
-                        <button
-                            onClick={() => setDeleteRoleModalOpen(false)}
-                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all select-none"
-                        >
-                            <X size={18} />
-                        </button>
-
-                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center font-semibold text-red-600 mb-4 select-none shadow-sm">
-                            <Trash2 className="w-8 h-8 text-red-600" />
-                        </div>
-
-                        <h3 className="font-bold text-slate-800 text-lg tracking-tight select-none mb-3">
-                            Delete Role?
-                        </h3>
-
-                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl text-center mb-6 max-w-sm">
-                            <p className="text-[11px] text-slate-600 font-medium leading-normal flex items-start gap-1 select-none">
-                                ⚠️ You have selected this role to delete. If this was the action that you wanted to do, please confirm your choice or cancel and return to the page.
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full select-none">
-                            <button
-                                onClick={() => setDeleteRoleModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
-                            >
-                                No, Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRolesList(rolesList.filter((_, i) => i !== deleteTargetIndex));
-                                    setDeleteRoleModalOpen(false);
-                                    setDeleteTargetIndex(null);
-                                }}
-                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
-                            >
-                                Yes, Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Bulk delete confirmation modal exactly matching Image 5 */}
-            {bulkDeleteModalOpen && selectedRows.length > 0 && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
-                    <div
-                        onClick={() => setBulkDeleteModalOpen(false)}
-                        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
-                    <div className="relative bg-white w-full max-w-md h-auto p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center select-none transform transition-all duration-300 animate-fade-in">
-                        {/* Close button at top-right */}
-                        <button
-                            onClick={() => setBulkDeleteModalOpen(false)}
-                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all select-none"
-                        >
-                            <X size={18} />
-                        </button>
-
-                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center font-semibold text-red-600 mb-4 select-none shadow-sm">
-                            <Trash2 className="w-8 h-8 text-red-600" />
-                        </div>
-
-                        <h3 className="font-bold text-slate-800 text-lg tracking-tight select-none mb-3">
-                            Delete Roles?
-                        </h3>
-
-                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl text-center mb-6 max-w-sm">
-                            <p className="text-[11px] text-slate-600 font-medium leading-normal flex items-start gap-1 select-none">
-                                ⚠️ You have selected these roles to delete. If this was the action that you wanted to do, please confirm your choice or cancel and return to the page.
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full select-none">
-                            <button
-                                onClick={() => setBulkDeleteModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
-                            >
-                                No, Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRolesList(rolesList.filter((_, i) => !selectedRows.includes(i)));
-                                    setSelectedRows([]);
-                                    setBulkDeleteModalOpen(false);
-                                }}
-                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
-                            >
-                                Yes, Delete
                             </button>
                         </div>
                     </div>

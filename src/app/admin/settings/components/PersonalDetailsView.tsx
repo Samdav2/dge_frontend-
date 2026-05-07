@@ -1,8 +1,31 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function PersonalDetailsView() {
+    const [profile, setProfile] = useState<any>({
+        name: "Admin User",
+        email: "admin@gmail.com",
+        phone: "+2348000000000",
+        role: "Super Admin",
+        status: "ACTIVE"
+    });
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const res = await fetch("/api/admin/profile");
+                if (res.ok) {
+                    const data = await res.json();
+                    setProfile(data);
+                }
+            } catch (error) {
+                console.error("Failed to load profile:", error);
+            }
+        };
+        loadProfile();
+    }, []);
+
     return (
         <div className="space-y-6 flex-1 flex flex-col select-none">
             <div className="flex flex-col select-none leading-none">
@@ -17,7 +40,7 @@ export default function PersonalDetailsView() {
                 {/* Profile Picture Row */}
                 <div className="flex items-center gap-6 select-none border-b border-slate-50 pb-6">
                     <div className="w-20 h-20 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center font-bold text-2xl text-amber-600 select-none overflow-hidden shrink-0">
-                        NC
+                        {profile.name?.substring(0, 2).toUpperCase() || "A"}
                     </div>
                     <div className="flex flex-col select-none leading-tight">
                         <h3 className="text-sm font-bold text-slate-800 select-none">Display Picture</h3>
@@ -35,14 +58,14 @@ export default function PersonalDetailsView() {
                     <div className="flex flex-col select-none">
                         <span className="text-xs text-slate-400 font-medium select-none">Full Name</span>
                         <span className="font-bold text-sm text-slate-800 mt-1 select-none leading-tight">
-                            Nnaji Christian Chinemerem
+                            {profile.name}
                         </span>
                     </div>
 
                     <div className="flex flex-col select-none">
                         <span className="text-xs text-slate-400 font-medium select-none">Email Address</span>
                         <span className="font-bold text-sm text-slate-800 mt-1 select-none leading-tight">
-                            chrisnnaji@dge.com
+                            {profile.email}
                         </span>
                     </div>
 
@@ -50,7 +73,7 @@ export default function PersonalDetailsView() {
                         <div className="flex flex-col select-none">
                             <span className="text-xs text-slate-400 font-medium select-none">Role Name</span>
                             <span className="font-bold text-sm text-slate-800 mt-1 select-none leading-tight">
-                                Chief Executive Officer
+                                {profile.role}
                             </span>
                         </div>
                         <button className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-4 py-1.5 rounded-full text-white font-bold text-[10px] select-none transition-all hover:scale-[1.01] shadow-sm">

@@ -15,19 +15,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: "Credentials",
             credentials: {
                 username: { label: "Username", type: "text" },
-                password: { label: "Password", type: "password" }
+                password: { label: "Password", type: "password" },
+                isAdmin: { label: "IsAdmin", type: "text" },
             },
             async authorize(credentials) {
                 if (!credentials?.username || !credentials?.password) return null;
 
                 try {
+                    const isAdmin = credentials.isAdmin === "true";
                     const backendUrl = process.env.NEXT_PUBLIC_API_URL;
                     const apiKey = process.env.BACKEND_API_KEY;
                     console.log("Debug: Login Attempt - Backend URL:", backendUrl);
                     console.log("Debug: Login Attempt - API Key exists:", !!apiKey);
                     console.log("Debug: Login Attempt - API Key length:", apiKey?.length);
+                    console.log("Debug: Login Attempt - IsAdmin:", isAdmin);
 
-                    const res = await fetch(`${backendUrl}/auth/token`, {
+                    const endpoint = isAdmin ? "/super_admin/super_admins/login" : "/auth/token";
+
+                    const res = await fetch(`${backendUrl}${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -89,11 +94,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         else if (user.data?.access_token) user.backendToken = user.data.access_token;
                     }
 
-                    // Map nested user object to backendUser
-                    if (typeof user === 'object' && user !== null && user.user) {
-                        user.backendUser = user.user;
-                        // Use the ID from the nested user object if available
-                        if (user.user.id) user.id = user.user.id;
+                    // Map nested user or admin object to backendUser
+                    if (typeof user === 'object' && user !== null && (user.user || user.admin)) {
+                        user.backendUser = user.user || user.admin;
+                        // Use the ID from the nested user/admin object if available
+                        if (user.backendUser.id) user.id = user.backendUser.id;
+                    }
+
+                    // Explicitly set role
+                    if (isAdmin && user && typeof user === 'object') {
+                        (user as any).role = "admin";
+                    } else if (user && typeof user === 'object') {
+                        (user as any).role = "user";
                     }
 
                     // Ensure user has an id (fallback)
@@ -186,10 +198,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.log("=== JWT CALLBACK ===");
             console.log("Debug: JWT Callback - user present:", !!user);
             if (user) {
-                console.log("Debug: JWT Callback - User object keys:", Object.keys(user));
-                console.log("Debug: JWT Callback - user.backendToken:", user.backendToken ? "exists (" + String(user.backendToken).substring(0, 20) + "...)" : "MISSING");
+                console.log("Debug: JWT Callback - Setting token fields from user:", user.id);
                 token.backendToken = user.backendToken;
                 token.backendUser = user.backendUser;
+                token.role = (user as any).role;
+                token.id = user.id;
+            } else {
+                console.log("Debug: JWT Callback - Token persistence check:", token.id, !!token.backendToken);
             }
 
             // Check if token is expired or about to expire
@@ -261,6 +276,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Merge backend user data if available, or just attach it
             if (token.backendUser) {
                 session.user = { ...session.user, ...token.backendUser };
+            }
+            if (token.role) {
+                (session.user as any).role = token.role;
             }
             console.log("Debug: Session Callback - session.backendToken after:", !!session.backendToken);
             return session;

@@ -1,80 +1,208 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MoreHorizontal, Eye, RefreshCw, ChevronRight } from "lucide-react";
+import { useStatusModal } from "../../components/StatusModalProvider";
+import EscrowDetailModal from "./EscrowDetailModal";
 
 interface EscrowItem {
     id: string;
-    seller: string;
-    buyer: string;
-    service: string;
-    price: string;
-    date: string;
-    status: "ACTIVE" | "COMPLETED" | "REFUNDED";
+    service_name: string;
+    payer_name: string;
+    payee_name: string;
+    amount: string;
+    status: string;
+    created_at: string;
 }
 
 interface ActiveEscrowsTabProps {
-    onRowClick: (item: EscrowItem) => void;
+    onEscrowClick: (escrow: EscrowItem) => void;
 }
 
-export default function ActiveEscrowsTab({ onRowClick }: ActiveEscrowsTabProps) {
-    const escrows: EscrowItem[] = [
-        { id: "Ngo-0001", seller: "Ikoro Jessica", buyer: "Nnaji Christian", service: "Urgently seeking skilled car...", price: "₦9,900", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0002", seller: "Mabel Nzekew", buyer: "Ikoro Jessica", service: "Looking for an experienced...", price: "₦4,000", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0003", seller: "Nnaji Christian", buyer: "Mabel Nzekew", service: "Looking for an experienced...", price: "₦4,000", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0004", seller: "Ibrahim Fatima", buyer: "Jaxon Lee", service: "Seeking a skilled UI/UX desi...", price: "₦4,500", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0005", seller: "Nguyen Minh", buyer: "Sophia Kim", service: "Hiring a talented motion gr...", price: "₦5,000", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0006", seller: "Patel Priya", buyer: "Chase Thompson", service: "In need of a creative web d...", price: "₦5,500", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0007", seller: "Johnson Michael", buyer: "Isabella Garcia", service: "Looking for an innovative ill...", price: "₦6,000", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0008", seller: "Smith Sarah", buyer: "Liam Patel", service: "Searching for a proficient s...", price: "₦6,500", date: "09/03/2025", status: "ACTIVE" },
-        { id: "Ngo-0009", seller: "Garcia Luis", buyer: "Zara Ahmed", service: "Requesting an adept photo...", price: "₦7,000", date: "09/03/2025", status: "ACTIVE" }
-    ];
+export default function ActiveEscrowsTab({ onEscrowClick }: ActiveEscrowsTabProps) {
+    const [items, setItems] = useState<EscrowItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+    const [selectedEscrowId, setSelectedEscrowId] = useState<string | null>(null);
+    const { showModal, hideModal } = useStatusModal();
+
+    const fetchEscrows = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/admin/escrows?status=held");
+            const data = await res.json();
+            console.log("Escrows fetched:", data.items);
+            if (data.items) setItems(data.items);
+        } catch (err) {
+            console.error("Failed to fetch active escrows:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchEscrows();
+    }, []);
+
+    const toggleMenu = (id: string, event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (activeMenu === id) {
+            setActiveMenu(null);
+        } else {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setMenuPos({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 140
+            });
+            setActiveMenu(id);
+        }
+    };
+
+    const handleStatusUpdate = async (id: string, newStatus: string) => {
+        showModal({
+            type: "confirm",
+            title: "Change Escrow Status",
+            message: `Are you sure you want to change this escrow status to ${newStatus.toUpperCase()}? This will affect financial records.`,
+            onConfirm: async () => {
+                hideModal();
+                try {
+                    const res = await fetch(`/api/admin/escrows/${id}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: newStatus }),
+                    });
+                    if (res.ok) {
+                        setItems(items.filter(it => it.id !== id));
+                        showModal({
+                            type: "success",
+                            title: "Status Updated",
+                            message: `Escrow has been successfully ${newStatus === "released" ? "released to payee" : "refunded to payer"}.`
+                        });
+                    } else {
+                        const err = await res.json();
+                        showModal({
+                            type: "error",
+                            title: "Update Failed",
+                            message: err.detail || "Failed to update escrow status"
+                        });
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        });
+        setActiveMenu(null);
+    };
 
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between overflow-x-auto select-none relative animate-fade-in mt-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between overflow-x-auto select-none relative animate-fade-in mt-4 min-h-[400px]">
+            {loading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
+                    <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            )}
             <table className="w-full text-left border-collapse select-none">
                 <thead>
                     <tr className="border-b border-slate-50 select-none">
-                        <th className="py-3 px-2 w-10 select-none">
+                        <th className="py-3 px-2 w-10">
                             <input type="checkbox" className="w-4 h-4 rounded border-slate-200 text-amber-600 bg-white" />
                         </th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Negotiation ID</th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Seller Name</th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Buyer Name</th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Service</th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Negotiation Price</th>
-                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Date Created</th>
+                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Service Name</th>
+                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Payer</th>
+                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Payee</th>
+                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount</th>
+                        <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Date Held</th>
                         <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
                         <th className="py-3 px-2 w-8"></th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                    {escrows.map((item, idx) => (
-                        <tr
-                            key={idx}
-                            onClick={() => onRowClick(item)}
-                            className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none"
-                        >
-                            <td className="py-4 px-2 select-none">
+                    {items.length > 0 ? items.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none" onClick={() => onEscrowClick(item)}>
+                            <td className="py-4 px-2" onClick={(e) => e.stopPropagation()}>
                                 <input type="checkbox" className="w-4 h-4 rounded border-slate-200 text-amber-600 bg-white" />
                             </td>
-                            <td className="py-4 px-2 text-xs font-semibold text-slate-800 leading-tight">{item.id}</td>
-                            <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none">{item.seller}</td>
-                            <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none">{item.buyer}</td>
-                            <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none max-w-[180px] truncate">{item.service}</td>
-                            <td className="py-4 px-2 text-xs text-slate-500 font-semibold select-none">{item.price}</td>
-                            <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none">{item.date}</td>
-                            <td className="py-4 px-2 select-none">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] bg-blue-50 text-blue-600 border border-blue-100 select-none">
-                                    ACTIVE
+                            <td className="py-4 px-2 text-xs font-semibold text-slate-800 leading-tight max-w-[180px] truncate">{item.service_name}</td>
+                            <td className="py-4 px-2 text-xs text-slate-400 font-medium">{item.payer_name}</td>
+                            <td className="py-4 px-2 text-xs text-slate-400 font-medium">{item.payee_name}</td>
+                            <td className="py-4 px-2 text-xs text-slate-500 font-bold">{item.amount}</td>
+                            <td className="py-4 px-2 text-xs text-slate-400 font-medium">{item.created_at}</td>
+                            <td className="py-4 px-2">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] bg-amber-50 text-amber-600 border border-amber-100 uppercase">
+                                    {item.status}
                                 </span>
                             </td>
-                            <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600">
-                                <MoreHorizontal size={16} />
+                            <td className="py-4 px-2 text-slate-400 relative">
+                                <button 
+                                    onClick={(e) => toggleMenu(item.id, e)}
+                                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                                >
+                                    <MoreHorizontal size={16} />
+                                </button>
                             </td>
                         </tr>
-                    ))}
+                    )) : !loading && (
+                        <tr><td colSpan={8} className="py-12 text-center text-slate-400 text-xs italic font-medium">No active escrows found.</td></tr>
+                    )}
                 </tbody>
             </table>
+
+            {/* Fixed Positioned Popups to avoid clipping */}
+            {activeMenu !== null && (
+                <div 
+                    className="fixed bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100] flex flex-col select-none animate-in fade-in zoom-in-95 duration-100 w-40"
+                    style={{ 
+                        top: `${menuPos.top - window.scrollY}px`, 
+                        left: `${menuPos.left - window.scrollX}px` 
+                    }}
+                >
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (activeMenu && activeMenu !== "undefined") {
+                                setSelectedEscrowId(activeMenu);
+                            } else {
+                                console.error("Attempted to open detail with invalid ID:", activeMenu);
+                            }
+                            setActiveMenu(null);
+                        }}
+                        className="w-full px-3 py-2 text-left text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg flex items-center gap-2"
+                    >
+                        <Eye size={14} className="text-blue-500" /> View Total Info
+                    </button>
+                    <div className="border-t border-slate-50 my-1 pt-1">
+                        <span className="px-3 py-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">Change Status</span>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusUpdate(activeMenu, "released");
+                            }}
+                            className="w-full px-3 py-2 text-left text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 rounded-lg flex items-center gap-2"
+                        >
+                            <RefreshCw size={14} /> Release Funds
+                        </button>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusUpdate(activeMenu, "refunded");
+                            }}
+                            className="w-full px-3 py-2 text-left text-[10px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+                        >
+                            <RefreshCw size={14} /> Refund Payer
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Escrow Detail Modal */}
+            {selectedEscrowId && (
+                <EscrowDetailModal 
+                    escrowId={selectedEscrowId} 
+                    onClose={() => setSelectedEscrowId(null)} 
+                />
+            )}
         </div>
     );
 }

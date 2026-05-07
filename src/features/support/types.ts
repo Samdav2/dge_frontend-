@@ -42,6 +42,8 @@ export interface SupportTicketReply {
     created_at: string;
     author_user_id?: string | null;
     author_team_user_id?: string | null;
+    author_admin_id?: string | null;
+    author_name?: string | null;
 }
 
 export interface SupportTicketReplyCreate {

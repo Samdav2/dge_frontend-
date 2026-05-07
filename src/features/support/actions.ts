@@ -13,7 +13,13 @@ import {
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
+    if (!session) {
+        console.warn("Support Actions: No session found");
+        return null;
+    }
+
+    if (!session.backendToken) {
+        console.warn("Support Actions: No backendToken found in session");
         return null;
     }
 
@@ -22,31 +28,61 @@ async function getAuthHeaders() {
         token = token.slice(1, -1);
     }
 
+    const apiKey = process.env.BACKEND_API_KEY;
+    if (!apiKey) {
+        console.warn("Support Actions: BACKEND_API_KEY is missing from environment");
+    }
+
     return {
         "Authorization": `Bearer ${token}`,
-        "X-API-KEY": process.env.BACKEND_API_KEY || "",
+        "X-API-KEY": apiKey || "",
     };
 }
 
 // Get current user ID
 async function getCurrentUserId(): Promise<string | null> {
     const session = await auth();
-    return session?.user?.id || null;
+    console.log("Support Actions: Session structure in getCurrentUserId:", JSON.stringify({ 
+        hasSession: !!session, 
+        hasUser: !!session?.user, 
+        userId: session?.user?.id,
+        // @ts-ignore
+        backendUserId: session?.backendUserId 
+    }));
+    return session?.user?.id || (session as any)?.backendUserId || null;
 }
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 // List all support tickets for current user
 export async function getTickets(): Promise<{ success: boolean; data?: SupportTicket[]; error?: string }> {
-    const headers = await getAuthHeaders();
-    if (!headers) {
-        return { success: false, error: "Unauthorized", data: [] };
+    const session = await auth();
+    if (!session) {
+        console.warn("Support Actions: No session found");
+        return { success: false, error: "Unauthorized: No Session", data: [] };
+    }
+    const isAdmin = (session.user as any)?.role === "admin";
+    
+    if (!session.backendToken && !isAdmin) {
+        console.warn("Support Actions: No backendToken found in session and user is not admin");
+        return { success: false, error: "Unauthorized: No Token", data: [] };
     }
 
+    const headers = await getAuthHeaders();
+    if (!headers && !isAdmin) {
+        return { success: false, error: "Unauthorized: Headers Failed", data: [] };
+    }
+
+    // Prepare headers for admin (might only have X-API-KEY)
+    const requestHeaders: any = headers || { "X-API-KEY": process.env.BACKEND_API_KEY || "" };
+
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/`, {
+        const endpoint = isAdmin ? "/super_admin/super_admins/admin-tickets" : "/v1/support/support-tickets/";
+        const fullUrl = `${apiUrl}${endpoint}`;
+        console.log(`Support Actions: Fetching tickets from ${fullUrl} (isAdmin: ${isAdmin})`);
+        const response = await fetch(fullUrl, {
             method: "GET",
-            headers,
+            headers: requestHeaders,
         });
 
         if (!response.ok) {
@@ -64,15 +100,24 @@ export async function getTickets(): Promise<{ success: boolean; data?: SupportTi
 
 // Get single ticket by ID
 export async function getTicket(ticketId: string): Promise<{ success: boolean; data?: SupportTicket; error?: string }> {
+    const session = await auth();
+    const isAdmin = (session?.user as any)?.role === "admin";
+
     const headers = await getAuthHeaders();
-    if (!headers) {
+    if (!headers && !isAdmin) {
         return { success: false, error: "Unauthorized" };
     }
 
+    const requestHeaders: any = headers || { "X-API-KEY": process.env.BACKEND_API_KEY || "" };
+
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/${ticketId}`, {
+        const endpoint = isAdmin 
+            ? `/super_admin/super_admins/admin-tickets/${ticketId}` 
+            : `/v1/support/support-tickets/${ticketId}`;
+        const fullUrl = `${apiUrl}${endpoint}`;
+        const response = await fetch(fullUrl, {
             method: "GET",
-            headers,
+            headers: requestHeaders,
         });
 
         if (!response.ok) {
@@ -101,7 +146,8 @@ export async function createTicket(data: Omit<SupportTicketCreate, 'user_id'>): 
     }
 
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/`, {
+        const fullUrl = `${apiUrl}/v1/support/support-tickets/`;
+        const response = await fetch(fullUrl, {
             method: "POST",
             headers: {
                 ...headers,
@@ -134,7 +180,8 @@ export async function updateTicket(ticketId: string, data: SupportTicketUpdate):
     }
 
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/${ticketId}`, {
+        const fullUrl = `${apiUrl}/v1/support/support-tickets/${ticketId}`;
+        const response = await fetch(fullUrl, {
             method: "PUT",
             headers: {
                 ...headers,
@@ -164,7 +211,8 @@ export async function deleteTicket(ticketId: string): Promise<{ success: boolean
     }
 
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/${ticketId}`, {
+        const fullUrl = `${apiUrl}/v1/support/support-tickets/${ticketId}`;
+        const response = await fetch(fullUrl, {
             method: "DELETE",
             headers,
         });
@@ -183,15 +231,24 @@ export async function deleteTicket(ticketId: string): Promise<{ success: boolean
 
 // Get ticket replies
 export async function getTicketReplies(ticketId: string): Promise<{ success: boolean; data?: SupportTicketReply[]; error?: string }> {
+    const session = await auth();
+    const isAdmin = (session?.user as any)?.role === "admin";
+    
     const headers = await getAuthHeaders();
-    if (!headers) {
+    if (!headers && !isAdmin) {
         return { success: false, error: "Unauthorized", data: [] };
     }
 
+    const requestHeaders: any = headers || { "X-API-KEY": process.env.BACKEND_API_KEY || "" };
+
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/${ticketId}/replies`, {
+        const endpoint = isAdmin 
+            ? `/super_admin/super_admins/admin-tickets/${ticketId}/replies` 
+            : `/v1/support/support-tickets/${ticketId}/replies`;
+        const fullUrl = `${apiUrl}${endpoint}`;
+        const response = await fetch(fullUrl, {
             method: "GET",
-            headers,
+            headers: requestHeaders,
         });
 
         if (!response.ok) {
@@ -215,12 +272,16 @@ export async function createReply(ticketId: string, message: string): Promise<{ 
     }
 
     const userId = await getCurrentUserId();
+    const session = await auth();
+    console.log(`Support Actions: Creating reply for ticket ${ticketId}. userId: ${userId}, role: ${(session?.user as any)?.role}`);
+
     if (!userId) {
-        return { success: false, error: "User not found" };
+        return { success: false, error: "User not found (Session Missing ID)" };
     }
 
     try {
-        const response = await fetch(`${apiUrl}/support/support-tickets/${ticketId}/replies`, {
+        const fullUrl = `${apiUrl}/v1/support/support-tickets/${ticketId}/replies`;
+        const response = await fetch(fullUrl, {
             method: "POST",
             headers: {
                 ...headers,
@@ -236,6 +297,7 @@ export async function createReply(ticketId: string, message: string): Promise<{ 
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error("Support Actions: Create reply failed:", response.status, errorData);
             return { success: false, error: errorData.detail || "Failed to create reply" };
         }
 

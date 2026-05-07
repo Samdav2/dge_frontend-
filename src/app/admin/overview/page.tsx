@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AdminSidebar from "../components/AdminSidebar";
 import {
     LayoutDashboard,
@@ -23,11 +24,122 @@ import {
 } from "lucide-react";
 
 export default function AdminOverviewPage() {
+    const router = useRouter();
     const [selectedTab, setSelectedTab] = useState<"new-users" | "listed-jobs">("new-users");
     const [selectedTimeframe, setSelectedTimeframe] = useState<"Daily" | "Weekly" | "Monthly" | "Yearly">("Daily");
     const [selectedGraphRange, setSelectedGraphRange] = useState<string>("1M");
 
-    const usersList = [
+    const [stats, setStats] = useState<any>(null);
+    const [activeJobMenu, setActiveJobMenu] = useState<any>(null);
+    const [activeUserMenu, setActiveUserMenu] = useState<any>(null);
+    const [userMenuPos, setUserMenuPos] = useState({ top: 0, left: 0 });
+    const [jobMenuPos, setJobMenuPos] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        async function fetchStats() {
+            try {
+                const res = await fetch("/api/admin/stats");
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (err) {
+                console.error("Error fetching admin stats:", err);
+            }
+        }
+        fetchStats();
+    }, []);
+
+    const handleUserStatusChange = async (userId: string, status: string) => {
+        try {
+            const res = await fetch("/api/admin/users/status", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ userId, status })
+            });
+            if (res.ok) {
+                const statsRes = await fetch("/api/admin/stats");
+                if (statsRes.ok) {
+                    const data = await statsRes.json();
+                    setStats(data);
+                }
+                setActiveUserMenu(null);
+            } else {
+                console.error("Failed to update user status");
+            }
+        } catch (err) {
+            console.error("Error updating user status:", err);
+        }
+    };
+
+    const handleStatusChange = async (serviceId: string, status: string) => {
+        try {
+            const res = await fetch("/api/admin/services/status", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ serviceId, status })
+            });
+            if (res.ok) {
+                const statsRes = await fetch("/api/admin/stats");
+                if (statsRes.ok) {
+                    const data = await statsRes.json();
+                    setStats(data);
+                }
+                setActiveJobMenu(null);
+            } else {
+                console.error("Failed to update status");
+            }
+        } catch (err) {
+            console.error("Error updating status:", err);
+        }
+    };
+
+    const serviceCounts = [0, 0, 0, 0, 0, 0];
+    if (stats?.recent_services && Array.isArray(stats.recent_services)) {
+        stats.recent_services.forEach((s: any) => {
+            const dateStr = s.listed;
+            if (dateStr) {
+                const day = parseInt(dateStr.split("/")[0]) || 1;
+                const bucket = Math.floor(day / 5) % 6;
+                serviceCounts[bucket]++;
+            } else {
+                serviceCounts[0]++;
+            }
+        });
+    } else {
+        serviceCounts[0] = 2;
+        serviceCounts[1] = 4;
+        serviceCounts[2] = 3;
+        serviceCounts[3] = 7;
+        serviceCounts[4] = 5;
+        serviceCounts[5] = 4;
+    }
+
+    const maxCount = Math.max(...serviceCounts, 1);
+    const chartPoints = serviceCounts.map((count, index) => {
+        const x = (index / 5) * 1000;
+        const y = 200 - (count / maxCount) * 160;
+        return { x, y };
+    });
+
+    let pathD = `M 0,${chartPoints[0].y}`;
+    for (let i = 1; i < chartPoints.length; i++) {
+        const prev = chartPoints[i - 1];
+        const curr = chartPoints[i];
+        const cx1 = prev.x + (curr.x - prev.x) / 2;
+        const cy1 = prev.y;
+        const cx2 = prev.x + (curr.x - prev.x) / 2;
+        const cy2 = curr.y;
+        pathD += ` C ${cx1},${cy1} ${cx2},${cy2} ${curr.x},${curr.y}`;
+    }
+
+    const areaD = `${pathD} L 1000,240 L 0,240 Z`;
+
+    const usersList = stats?.recent_users ?? [
         {
             name: "Nnaji Christian",
             email: "chrisnnaji443@gmail.com",
@@ -65,7 +177,7 @@ export default function AdminOverviewPage() {
         }
     ];
 
-    const jobsList = [
+    const jobsList = stats?.recent_services ?? [
         {
             user: "Nnaji Christian",
             title: "Content Creation",
@@ -187,7 +299,7 @@ export default function AdminOverviewPage() {
                             <span className="text-[11px] font-medium text-slate-400">Total Revenue</span>
                             <div className="flex flex-col mt-auto">
                                 <span className="text-2xl font-bold text-white tracking-tight leading-none mb-1 select-none">
-                                    ₦84,343,000.00
+                                    ₦{stats ? new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2 }).format(stats.total_revenue) : "1,250.00"}
                                 </span>
                                 <div className="flex items-center gap-1.5 mt-1 select-none">
                                     <span className="flex items-center text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full select-none leading-none">
@@ -205,7 +317,7 @@ export default function AdminOverviewPage() {
                             <span className="text-[11px] font-medium text-slate-400">Total Jobs Services</span>
                             <div className="flex flex-col mt-auto select-none">
                                 <span className="text-2xl font-bold text-slate-800 tracking-tight leading-none mb-1 select-none">
-                                    14,388
+                                    {stats ? stats.total_services : "10"}
                                 </span>
                                 <div className="flex items-center gap-1.5 mt-1 select-none">
                                     <span className="flex items-center text-[10px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded-full select-none leading-none">
@@ -223,7 +335,7 @@ export default function AdminOverviewPage() {
                             <span className="text-[11px] font-medium text-slate-400">Active Drivers</span>
                             <div className="flex flex-col mt-auto select-none">
                                 <span className="text-2xl font-bold text-slate-800 tracking-tight leading-none mb-1 select-none">
-                                    8,235
+                                    {stats ? stats.active_drivers : "1"}
                                 </span>
                                 <div className="flex items-center gap-1.5 mt-1 select-none">
                                     <span className="flex items-center text-[10px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded-full select-none leading-none">
@@ -241,7 +353,7 @@ export default function AdminOverviewPage() {
                             <span className="text-[11px] font-medium text-slate-400">Total Number of Users</span>
                             <div className="flex flex-col mt-auto select-none">
                                 <span className="text-2xl font-bold text-slate-800 tracking-tight leading-none mb-1 select-none">
-                                    8,235
+                                    {stats ? stats.total_users : "56"}
                                 </span>
                                 <div className="flex items-center gap-1.5 mt-1 select-none">
                                     <span className="flex items-center text-[10px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded-full select-none leading-none">
@@ -303,20 +415,24 @@ export default function AdminOverviewPage() {
                                 </defs>
                                 {/* Background shading under path line curve */}
                                 <path
-                                    d="M 0,240 L 0,160 Q 150,150 250,170 T 500,100 T 630,70 T 800,170 T 1000,160 L 1000,240 Z"
+                                    d={areaD}
                                     fill="url(#chartGradient)"
                                 />
                                 {/* Main line path styling exactly like design image */}
                                 <path
-                                    d="M 0,160 Q 150,150 250,170 T 500,100 T 630,70 T 800,170 T 1000,160"
+                                    d={pathD}
                                     fill="none"
                                     stroke="#dca51a"
                                     strokeWidth="3.5"
                                     strokeLinecap="round"
                                 />
                                 {/* Drop shadow for dot marker exactly like in graph */}
-                                <circle cx="630" cy="70" r="10" fill="white" stroke="#22c55e" strokeWidth="3" />
-                                <circle cx="630" cy="70" r="4" fill="#22c55e" />
+                                {chartPoints.length > 0 && (
+                                    <>
+                                        <circle cx={chartPoints[chartPoints.length - 2]?.x ?? 630} cy={chartPoints[chartPoints.length - 2]?.y ?? 70} r="10" fill="white" stroke="#22c55e" strokeWidth="3" />
+                                        <circle cx={chartPoints[chartPoints.length - 2]?.x ?? 630} cy={chartPoints[chartPoints.length - 2]?.y ?? 70} r="4" fill="#22c55e" />
+                                    </>
+                                )}
                             </svg>
 
                             {/* Dynamic filters time range pills bottom */}
@@ -405,51 +521,115 @@ export default function AdminOverviewPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
-                                        {usersList.map((user, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none">
-                                                <td className="py-3 px-2 select-none">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
-                                                    />
-                                                </td>
-                                                <td className="py-3 px-2 flex items-center gap-3 select-none">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs border border-slate-200">
-                                                        {user.name.split(" ").map(n => n[0]).join("")}
-                                                    </div>
-                                                    <span className="font-semibold text-xs text-slate-800 leading-tight">
-                                                        {user.name}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-500 font-medium select-none">
-                                                    {user.email}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none">
-                                                    {user.id}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none">
-                                                    {user.joined}
-                                                </td>
-                                                <td className="py-3 px-2 select-none">
-                                                    <span
-                                                        className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                                            user.status === "VERIFIED"
-                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                                : user.status === "PENDING"
-                                                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                                                : "bg-red-50 text-red-600 border border-red-100"
-                                                        }`}
-                                                    >
-                                                        {user.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600">
-                                                    <MoreHorizontal size={16} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {usersList.map((user: any, idx: number) => {
+                                            const isRealUser = !!user.full_id;
+                                            const userId = user.full_id || idx;
+
+                                            return (
+                                                <tr 
+                                                    key={idx} 
+                                                    onClick={() => {
+                                                        if (isRealUser) {
+                                                            router.push(`/admin/users/${userId}`);
+                                                        }
+                                                    }}
+                                                    className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none"
+                                                >
+                                                    <td className="py-3 px-2 select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
+                                                        />
+                                                    </td>
+                                                    <td className="py-3 px-2 flex items-center gap-3 select-none">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs border border-slate-200">
+                                                            {user.name.split(" ").map((n: any) => n[0]).join("")}
+                                                        </div>
+                                                        <span className="font-semibold text-xs text-slate-800 leading-tight">
+                                                            {user.name}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-500 font-medium select-none">
+                                                        {user.email}
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none">
+                                                        {user.id}
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none">
+                                                        {user.joined}
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none">
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
+                                                                user.status === "VERIFIED" || user.status === "ACTIVE"
+                                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                                    : user.status === "PENDING"
+                                                                    ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                                                    : "bg-red-50 text-red-600 border border-red-100"
+                                                            }`}
+                                                        >
+                                                            {user.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600 relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (activeUserMenu === userId) {
+                                                                    setActiveUserMenu(null);
+                                                                } else {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setUserMenuPos({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX - 110 });
+                                                                    setActiveUserMenu(userId);
+                                                                }
+                                                            }}
+                                                            className="focus:outline-none p-1 rounded-md hover:bg-slate-100"
+                                                        >
+                                                            <MoreHorizontal size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
+
+                                {/* Fixed Positioned User Menu */}
+                                {activeUserMenu !== null && (
+                                    <div 
+                                        className="fixed bg-white border border-slate-200/80 rounded-xl shadow-lg z-[100] py-1 flex flex-col select-none w-32"
+                                        style={{ top: `${userMenuPos.top - window.scrollY}px`, left: `${userMenuPos.left - window.scrollX}px` }}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUserStatusChange(activeUserMenu, "ACTIVE");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-slate-50 text-slate-700 select-none"
+                                        >
+                                            Activate User
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUserStatusChange(activeUserMenu, "BANNED");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-slate-50 text-slate-700 select-none"
+                                        >
+                                            Ban User
+                                        </button>
+                                        <div className="h-px bg-slate-100 my-0.5"></div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUserStatusChange(activeUserMenu, "DELETE");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-red-50 hover:text-red-600 text-red-500 select-none"
+                                        >
+                                            Delete User
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="overflow-x-auto select-none">
@@ -481,51 +661,117 @@ export default function AdminOverviewPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
-                                        {jobsList.map((job, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none">
-                                                <td className="py-3 px-2 select-none">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
-                                                    />
-                                                </td>
-                                                <td className="py-3 px-2 flex items-center gap-3 select-none">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs border border-slate-200">
-                                                        {job.user.split(" ").map(n => n[0]).join("")}
-                                                    </div>
-                                                    <span className="font-semibold text-xs text-slate-800 leading-tight">
-                                                        {job.user}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-500 font-medium select-none max-w-[200px] truncate">
-                                                    {job.title}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none">
-                                                    {job.type}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none">
-                                                    {job.listed}
-                                                </td>
-                                                <td className="py-3 px-2 select-none">
-                                                    <span
-                                                        className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                                            job.status === "COMPLETED"
-                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                                : job.status === "IN PROGRESS"
-                                                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                                                : "bg-red-50 text-red-600 border border-red-100"
-                                                        }`}
-                                                    >
-                                                        {job.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600">
-                                                    <MoreHorizontal size={16} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {jobsList.map((job: any, idx: number) => {
+                                            const jobUserName = typeof job.user === "object" ? (job.user.name || "Anonymous") : (job.user || "Anonymous");
+                                            const initials = jobUserName.split(" ").map((n: any) => n ? n[0] : "").join("");
+                                            const jobId = job.id || idx;
+                                            const isRealJob = !!job.id;
+
+                                            return (
+                                                <tr 
+                                                    key={idx} 
+                                                    onClick={() => {
+                                                        if (isRealJob) {
+                                                            router.push(`/admin/jobs/${jobId}`);
+                                                        }
+                                                    }}
+                                                    className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none"
+                                                >
+                                                    <td className="py-3 px-2 select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
+                                                        />
+                                                    </td>
+                                                    <td className="py-3 px-2 flex items-center gap-3 select-none">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs border border-slate-200">
+                                                            {initials}
+                                                        </div>
+                                                        <span className="font-semibold text-xs text-slate-800 leading-tight">
+                                                            {jobUserName}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-500 font-medium select-none max-w-[200px] truncate">
+                                                        {job.title}
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none">
+                                                        {job.type}
+                                                     </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none">
+                                                        {job.listed}
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none">
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
+                                                                job.status === "approved" || job.status === "COMPLETED"
+                                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                                    : job.status === "draft" || job.status === "IN PROGRESS"
+                                                                    ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                                                    : "bg-red-50 text-red-600 border border-red-100"
+                                                            }`}
+                                                        >
+                                                            {job.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600 relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (activeJobMenu === jobId) {
+                                                                    setActiveJobMenu(null);
+                                                                } else {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setJobMenuPos({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX - 110 });
+                                                                    setActiveJobMenu(jobId);
+                                                                }
+                                                            }}
+                                                            className="focus:outline-none p-1 rounded-md hover:bg-slate-100"
+                                                        >
+                                                            <MoreHorizontal size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
+
+                                {/* Fixed Positioned Job Menu */}
+                                {activeJobMenu !== null && (
+                                    <div 
+                                        className="fixed bg-white border border-slate-200/80 rounded-xl shadow-lg z-[100] py-1 flex flex-col select-none w-32"
+                                        style={{ top: `${jobMenuPos.top - window.scrollY}px`, left: `${jobMenuPos.left - window.scrollX}px` }}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleStatusChange(activeJobMenu, "ACTIVE");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-slate-50 text-slate-700 select-none"
+                                        >
+                                            Mark as Active
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleStatusChange(activeJobMenu, "DRAFT");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-slate-50 text-slate-700 select-none"
+                                        >
+                                            Mark as Draft
+                                        </button>
+                                        <div className="h-px bg-slate-100 my-0.5"></div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleStatusChange(activeJobMenu, "DELETE");
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-red-50 hover:text-red-600 text-red-500 select-none"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

@@ -1,29 +1,36 @@
 "use client";
-
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import {
-    LayoutDashboard,
-    Bell,
-    Settings,
-    Users,
-    Car,
-    FileCheck,
-    MessageSquare,
-    Wallet,
     Headset,
     Search,
     ChevronDown,
-    MoreHorizontal,
-    TrendingUp
+    Loader2
 } from "lucide-react";
-
+import { getTickets } from "@/features/support/actions";
 import AllTicketsTab from "./components/AllTicketsTab";
 import SupportChatView from "./components/SupportChatView";
 
 export default function AdminSupportPage() {
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+    const [stats, setStats] = useState({ total: 0, attended: 0, pending: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    const fetchStats = async () => {
+        setLoading(true);
+        const result = await getTickets();
+        if (result.success && result.data) {
+            const total = result.data.length;
+            const attended = result.data.filter((t: any) => t.status === 'resolved' || t.status === 'closed' || t.status === 'in_progress').length;
+            const pending = result.data.filter((t: any) => t.status === 'open').length;
+            setStats({ total, attended, pending });
+        }
+        setLoading(false);
+    };
 
     return (
         <div className="flex h-screen bg-[#fafafa] overflow-hidden select-none relative">
@@ -70,7 +77,7 @@ export default function AdminSupportPage() {
                             />
                         </div>
 
-                        {/* Top statistics exactly as Screenshot 1 */}
+                        {/* Top statistics */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 select-none leading-none">
                             <div className="bg-white p-6 rounded-2xl border border-slate-100 flex flex-col justify-between h-[135px] select-none hover:scale-[1.01] transition-all cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.01)] leading-none">
                                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none leading-tight">
@@ -78,10 +85,10 @@ export default function AdminSupportPage() {
                                 </span>
                                 <div className="flex flex-col select-none leading-none">
                                     <span className="text-2xl font-bold tracking-tight text-slate-800 select-none">
-                                        1,388
+                                        {loading ? "..." : stats.total.toLocaleString()}
                                     </span>
-                                    <span className="text-[11px] text-red-600 font-bold select-none leading-tight mt-2 flex items-center gap-1">
-                                        ↓ 22.1% <span className="text-slate-400 font-medium">July 2025</span>
+                                    <span className="text-[11px] text-emerald-600 font-bold select-none leading-tight mt-2 flex items-center gap-1">
+                                        Active <span className="text-slate-400 font-medium">Live Feed</span>
                                     </span>
                                 </div>
                             </div>
@@ -92,10 +99,10 @@ export default function AdminSupportPage() {
                                 </span>
                                 <div className="flex flex-col select-none leading-none">
                                     <span className="text-2xl font-bold tracking-tight text-slate-800 select-none">
-                                        1,388
+                                        {loading ? "..." : stats.attended.toLocaleString()}
                                     </span>
                                     <span className="text-[11px] text-emerald-600 font-bold select-none leading-tight mt-2 flex items-center gap-1">
-                                        ↓ 22.1% <span className="text-slate-400 font-medium">July 2025</span>
+                                        Resolved <span className="text-slate-400 font-medium">Total</span>
                                     </span>
                                 </div>
                             </div>
@@ -106,22 +113,25 @@ export default function AdminSupportPage() {
                                 </span>
                                 <div className="flex flex-col select-none leading-none">
                                     <span className="text-2xl font-bold tracking-tight text-slate-800 select-none">
-                                        1,388
+                                        {loading ? "..." : stats.pending.toLocaleString()}
                                     </span>
                                     <span className="text-[11px] text-amber-600 font-bold select-none leading-tight mt-2 flex items-center gap-1">
-                                        ↓ 22.1% <span className="text-slate-400 font-medium">July 2025</span>
+                                        Waiting <span className="text-slate-400 font-medium">Action</span>
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Title exactly like Screenshot 1 */}
+                        {/* Title */}
                         <div className="flex items-center justify-between select-none border-b border-slate-50 pb-2.5">
                             <h2 className="text-sm font-bold tracking-tight text-slate-800 select-none">
                                 All Tickets
                             </h2>
-                            <button className="text-[11px] font-bold text-[#b68512] hover:text-[#a17410] transition-colors flex items-center gap-1 select-none leading-none">
-                                View All →
+                            <button 
+                                onClick={fetchStats}
+                                className="text-[11px] font-bold text-[#b68512] hover:text-[#a17410] transition-colors flex items-center gap-1 select-none leading-none"
+                            >
+                                Refresh Data ↻
                             </button>
                         </div>
 
@@ -129,7 +139,7 @@ export default function AdminSupportPage() {
                         <AllTicketsTab onViewTicket={setSelectedTicket} />
                     </div>
                 ) : (
-                    /* Ticket Detail / Chat Interface exactly like Screenshot 3 */
+                    /* Ticket Detail / Chat Interface */
                     <div className="p-8 space-y-6 flex-1 overflow-y-auto select-none max-w-[1400px] mx-auto w-full animate-fade-in relative h-full">
                         <SupportChatView item={selectedTicket} onBack={() => setSelectedTicket(null)} />
                     </div>

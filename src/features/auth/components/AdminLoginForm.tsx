@@ -32,6 +32,7 @@ export function AdminLoginForm() {
             const result = await signIn("credentials", {
                 username: data.email,
                 password: data.password,
+                isAdmin: "true",
                 redirect: false,
             });
 

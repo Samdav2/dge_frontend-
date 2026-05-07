@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ChevronDown,
     MoreHorizontal,
@@ -12,12 +12,7 @@ import {
 } from "lucide-react";
 
 export default function CategoryManagementView() {
-    const [categoriesList, setCategoriesList] = useState([
-        { name: "UI/UX Designer", created: "09/03/2025" },
-        { name: "Product Manager", created: "09/03/2025" },
-        { name: "Front-End Developer", created: "09/03/2025" },
-        { name: "Data Analyst", created: "09/03/2025" }
-    ]);
+    const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
     const [isCategoryEmpty, setIsCategoryEmpty] = useState(false);
     const [addCategoryModalOpen, setAddCategoryModalOpen] = useState(false);
@@ -33,11 +28,40 @@ export default function CategoryManagementView() {
     const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
 
     const [activeRowPopup, setActiveRowPopup] = useState<number | null>(null);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
 
-    const toggleRowPopup = (idx: number) => {
+    async function fetchCategories() {
+        try {
+            const res = await fetch("/api/admin/categories");
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setCategoriesList(data.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        created: item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB") : "N/A"
+                    })));
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching categories:", err);
+        }
+    }
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const toggleRowPopup = (idx: number, event: React.MouseEvent) => {
+        event.stopPropagation();
         if (activeRowPopup === idx) {
             setActiveRowPopup(null);
         } else {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setPopupPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 140
+            });
             setActiveRowPopup(idx);
         }
     };
@@ -58,19 +82,50 @@ export default function CategoryManagementView() {
         }
     };
 
-    const handleAddCategory = () => {
+    const handleAddCategory = async () => {
         if (!catName) {
             alert("Category name is required!");
             return;
         }
+        try {
+            const res = await fetch("/api/admin/categories", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: catName })
+            });
+            if (res.ok) {
+                alert("Category added successfully!");
+                setCatName("");
+                setAddCategoryModalOpen(false);
+                fetchCategories();
+            } else {
+                alert("Failed to add category");
+            }
+        } catch (err) {
+            console.error("Error adding category:", err);
+        }
+    };
 
-        setCategoriesList([
-            { name: catName, created: "09/03/2025" },
-            ...categoriesList
-        ]);
-        setCatName("");
-        setAddCategoryModalOpen(false);
-        setIsCategoryEmpty(false);
+    const handleExportCSV = () => {
+        if (categoriesList.length === 0) return;
+        
+        const headers = ["Name", "Date Created"];
+        const rows = categoriesList.map(c => [c.name, c.created]);
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `categories_export_${new Date().toISOString().split("T")[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -121,6 +176,12 @@ export default function CategoryManagementView() {
                         </div>
                     ) : (
                         <>
+                            <button 
+                                onClick={handleExportCSV}
+                                className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1"
+                            >
+                                Export CSV <ChevronDown size={13} className="text-slate-400" />
+                            </button>
                             <button
                                 onClick={() => {
                                     setCatName("");
@@ -203,54 +264,58 @@ export default function CategoryManagementView() {
                                         {cat.name}
                                     </td>
                                     <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                        {cat.created}
+                                        {cat.created || cat.created_at || "N/A"}
                                     </td>
                                     <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600 relative">
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleRowPopup(idx);
-                                            }}
-                                            className="focus:outline-none select-none relative"
+                                            onClick={(e) => toggleRowPopup(idx, e)}
+                                            className="focus:outline-none select-none relative p-1 rounded-md hover:bg-slate-100"
                                         >
                                             <MoreHorizontal size={16} />
                                         </button>
-
-                                        {/* Dropdown popup from Screenshot 3 */}
-                                        {activeRowPopup === idx && (
-                                            <div className="absolute right-6 top-10 w-36 bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-50 flex flex-col select-none animate-fade-in">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setCatName(cat.name);
-                                                        setEditTargetIndex(idx);
-                                                        setActiveRowPopup(null);
-                                                        setEditCategoryModalOpen(true);
-                                                    }}
-                                                    className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                >
-                                                    <Edit size={13} className="text-slate-400" />
-                                                    <span>Update Category</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setDeleteTargetIndex(idx);
-                                                        setActiveRowPopup(null);
-                                                        setDeleteCategoryModalOpen(true);
-                                                    }}
-                                                    className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
-                                                >
-                                                    <Trash2 size={13} />
-                                                    <span>Delete Category</span>
-                                                </button>
-                                            </div>
-                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+
+                    {/* Fixed Positioned Popups to avoid clipping */}
+                    {activeRowPopup !== null && (
+                        <div 
+                            className="fixed bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100] flex flex-col select-none animate-fade-in w-36"
+                            style={{ 
+                                top: `${popupPosition.top - window.scrollY}px`, 
+                                left: `${popupPosition.left - window.scrollX}px` 
+                            }}
+                        >
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const cat = categoriesList[activeRowPopup];
+                                    setCatName(cat.name);
+                                    setEditTargetIndex(activeRowPopup);
+                                    setActiveRowPopup(null);
+                                    setEditCategoryModalOpen(true);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                            >
+                                <Edit size={13} className="text-slate-400" />
+                                <span>Update Category</span>
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTargetIndex(activeRowPopup);
+                                    setActiveRowPopup(null);
+                                    setDeleteCategoryModalOpen(true);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
+                            >
+                                <Trash2 size={13} />
+                                <span>Delete Category</span>
+                            </button>
+                        </div>
+                    )}
 
                     {/* Footer pagination exactly matching screenshots */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6 select-none pt-4 border-t border-slate-50 select-none">
@@ -388,15 +453,28 @@ export default function CategoryManagementView() {
                                 Cancel
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (!catName) {
                                         alert("Category name is required!");
                                         return;
                                     }
-                                    const copy = [...categoriesList];
-                                    copy[editTargetIndex].name = catName;
-                                    setCategoriesList(copy);
-                                    setEditCategoryModalOpen(false);
+                                    const catId = categoriesList[editTargetIndex].id;
+                                    try {
+                                        const res = await fetch(`/api/admin/categories?category_id=${catId}`, {
+                                            method: "PUT",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ name: catName })
+                                        });
+                                        if (res.ok) {
+                                            alert("Category updated successfully!");
+                                            setEditCategoryModalOpen(false);
+                                            fetchCategories();
+                                        } else {
+                                            alert("Failed to update category");
+                                        }
+                                    } catch (err) {
+                                        console.error("Error updating category:", err);
+                                    }
                                 }}
                                 className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none"
                             >
@@ -446,10 +524,23 @@ export default function CategoryManagementView() {
                                 No, Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    setCategoriesList(categoriesList.filter((_, i) => i !== deleteTargetIndex));
-                                    setDeleteCategoryModalOpen(false);
-                                    setDeleteTargetIndex(null);
+                                onClick={async () => {
+                                    const catId = categoriesList[deleteTargetIndex].id;
+                                    try {
+                                        const res = await fetch(`/api/admin/categories?category_id=${catId}`, {
+                                            method: "DELETE"
+                                        });
+                                        if (res.ok) {
+                                            alert("Category deleted successfully!");
+                                            setDeleteCategoryModalOpen(false);
+                                            setDeleteTargetIndex(null);
+                                            fetchCategories();
+                                        } else {
+                                            alert("Failed to delete category");
+                                        }
+                                    } catch (err) {
+                                        console.error("Error deleting category:", err);
+                                    }
                                 }}
                                 className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
                             >
@@ -499,8 +590,16 @@ export default function CategoryManagementView() {
                                 No, Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    setCategoriesList(categoriesList.filter((_, i) => !selectedRows.includes(i)));
+                                onClick={async () => {
+                                    for (const idx of selectedRows) {
+                                        const catId = categoriesList[idx]?.id;
+                                        if (catId) {
+                                            try {
+                                                await fetch(`/api/admin/categories?category_id=${catId}`, { method: "DELETE" });
+                                            } catch {}
+                                        }
+                                    }
+                                    await fetchCategories();
                                     setSelectedRows([]);
                                     setBulkDeleteModalOpen(false);
                                 }}

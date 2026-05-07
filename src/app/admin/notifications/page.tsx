@@ -18,6 +18,8 @@ import {
     ChevronDown
 } from "lucide-react";
 
+import { useEffect } from "react";
+
 export default function AdminNotificationsPage() {
     const [selectedTab, setSelectedTab] = useState<"compose" | "sent">("compose");
     const [deliveryChannel, setDeliveryChannel] = useState<"Email" | "Push">("Push");
@@ -25,6 +27,42 @@ export default function AdminNotificationsPage() {
 
     const [msgTitle, setMsgTitle] = useState("");
     const [msgBody, setMsgBody] = useState("");
+
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+    async function handleDeleteNotification(notifId: string) {
+        if (!confirm("Are you sure you want to delete this notification?")) return;
+        try {
+            const res = await fetch(`/api/admin/notifications?notification_id=${notifId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                alert("Notification deleted successfully");
+                fetchNotifications();
+            } else {
+                alert("Failed to delete notification");
+            }
+        } catch (err) {
+            console.error("Error deleting notification:", err);
+        }
+    }
+
+    async function fetchNotifications() {
+        try {
+            const res = await fetch("/api/admin/notifications");
+            if (res.ok) {
+                const data = await res.json();
+                setNotifications(data);
+            }
+        } catch (err) {
+            console.error("Error fetching notifications:", err);
+        }
+    }
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
 
     const sentNotifications = [
         {
@@ -230,10 +268,37 @@ export default function AdminNotificationsPage() {
                                             {msgBody.length} Characters
                                         </span>
                                         <button
-                                            onClick={() => {
-                                                alert("Message Sent successfully!");
-                                                setMsgTitle("");
-                                                setMsgBody("");
+                                            onClick={async () => {
+                                                if (!msgTitle || !msgBody) {
+                                                    alert("Please fill in both title and message body");
+                                                    return;
+                                                }
+                                                try {
+                                                    const res = await fetch("/api/admin/notifications", {
+                                                        method: "POST",
+                                                        headers: {
+                                                            "Content-Type": "application/json"
+                                                        },
+                                                        body: JSON.stringify({
+                                                            title: msgTitle,
+                                                            message: msgBody,
+                                                            recipients: recipientsType,
+                                                            type: deliveryChannel
+                                                        })
+                                                    });
+                                                    if (res.ok) {
+                                                        alert("Message Sent successfully!");
+                                                        setMsgTitle("");
+                                                        setMsgBody("");
+                                                        fetchNotifications();
+                                                        setSelectedTab("sent");
+                                                    } else {
+                                                        alert("Failed to send notification.");
+                                                    }
+                                                } catch (err) {
+                                                    console.error("Error sending notification:", err);
+                                                    alert("An error occurred.");
+                                                }
                                             }}
                                             className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-5 py-2.5 rounded-full text-white font-bold text-xs select-none shadow-sm transition-all flex items-center gap-2 hover:scale-[1.01]"
                                         >
@@ -379,43 +444,81 @@ export default function AdminNotificationsPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50 select-none">
-                                        {sentNotifications.map((notif, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none">
-                                                <td className="py-3 px-2 flex flex-col select-none">
-                                                    <span className="font-bold text-xs text-slate-800 leading-tight">
-                                                        {notif.title}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 mt-1 select-none font-medium leading-tight max-w-[320px] truncate">
-                                                        {notif.subtitle}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
-                                                    {notif.recipients}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                                    {notif.type}
-                                                </td>
-                                                <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                                    {notif.sentAt}
-                                                </td>
-                                                <td className="py-3 px-2 select-none">
-                                                    <span
-                                                        className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                                            notif.status === "DELIVERED"
-                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                                : notif.status === "PENDING"
-                                                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                                                : "bg-red-50 text-red-600 border border-red-100"
-                                                        }`}
-                                                    >
-                                                        {notif.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600">
-                                                    <MoreHorizontal size={16} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {(notifications.length > 0 ? notifications.map((n: any) => ({
+                                            id: n.id,
+                                            title: n.title,
+                                            subtitle: n.message,
+                                            recipients: n.recipients,
+                                            type: n.type,
+                                            sentAt: new Date(n.created_at).toLocaleDateString() + " . " + new Date(n.created_at).toLocaleTimeString(),
+                                            status: n.status,
+                                            isReal: true
+                                        })) : sentNotifications.map((n: any) => ({ ...n, isReal: false }))).map((notif: any, idx: number) => {
+                                            const keyId = notif.id || idx;
+                                            return (
+                                                <tr key={keyId} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none">
+                                                    <td className="py-3 px-2 flex flex-col select-none">
+                                                        <span className="font-bold text-xs text-slate-800 leading-tight">
+                                                            {notif.title}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 mt-1 select-none font-medium leading-tight max-w-[320px] truncate">
+                                                            {notif.subtitle}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
+                                                        {notif.recipients}
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none leading-none">
+                                                        {notif.type}
+                                                    </td>
+                                                    <td className="py-3 px-2 text-xs text-slate-400 font-medium select-none leading-none">
+                                                        {notif.sentAt}
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none">
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
+                                                                notif.status === "DELIVERED"
+                                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                                    : notif.status === "PENDING"
+                                                                    ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                                                    : "bg-red-50 text-red-600 border border-red-100"
+                                                            }`}
+                                                        >
+                                                            {notif.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-2 select-none text-slate-400 hover:text-slate-600 relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveMenuId(activeMenuId === keyId ? null : keyId);
+                                                            }}
+                                                            className="focus:outline-none p-1 rounded-md hover:bg-slate-100"
+                                                        >
+                                                            <MoreHorizontal size={16} />
+                                                        </button>
+                                                        {activeMenuId === keyId && (
+                                                            <div className="absolute right-2 top-10 w-32 bg-white border border-slate-200/80 rounded-xl shadow-lg z-50 py-1 flex flex-col select-none">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (notif.isReal) {
+                                                                            handleDeleteNotification(notif.id);
+                                                                            setActiveMenuId(null);
+                                                                        } else {
+                                                                            alert("Dummy notifications cannot be deleted from the backend.");
+                                                                        }
+                                                                    }}
+                                                                    className="px-3 py-1.5 text-xs text-left font-semibold hover:bg-red-50 hover:text-red-600 text-red-500 select-none"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

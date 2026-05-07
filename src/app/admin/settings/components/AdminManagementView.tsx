@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ChevronDown,
     MoreHorizontal,
@@ -15,21 +15,7 @@ import {
 } from "lucide-react";
 
 export default function AdminManagementView() {
-    const [adminList, setAdminList] = useState([
-        { name: "Nnaji Christian", email: "chrisnnaji443@gmail.com", phone: "09021233422", role: "Support", rank: "Support", created: "09/03/2025", status: "ACTIVE" },
-        { name: "Martha Dokubo", email: "sophia@gmail.com", phone: "09021233423", role: "Manager", rank: "Manager", created: "09/04/2025", status: "SUSPENDED" },
-        { name: "Elizabeth Bashir", email: "liam@gmail.com", phone: "09021233424", role: "Developer", rank: "Developer", created: "09/05/2025", status: "ACTIVE" },
-        { name: "John Bazimo", email: "ava@gmail.com", phone: "09021233425", role: "Designer", rank: "Designer", created: "09/06/2025", status: "ACTIVE" },
-        { name: "Daniel Ibe", email: "noah@gmail.com", phone: "09021233426", role: "Analyst", rank: "Analyst", created: "09/07/2025", status: "SUSPENDED" },
-        { name: "John Okafor", email: "mason@gmail.com", phone: "09021233427", role: "Tester", rank: "Tester", created: "09/08/2025", status: "ACTIVE" },
-        { name: "Daniel Ibe", email: "isabella@gmail.com", phone: "09021233428", role: "Product Owner", rank: "Product Owner", created: "09/09/2025", status: "ACTIVE" },
-        { name: "John Okafor", email: "ethan@gmail.com", phone: "09021233429", role: "Data Scientist", rank: "Data Scientist", created: "09/10/2025", status: "ACTIVE" },
-        { name: "Esther Okafor", email: "mia@gmail.com", phone: "09021233430", role: "Marketer", rank: "Marketer", created: "09/11/2025", status: "ACTIVE" },
-        { name: "Joseph Werinipre", email: "oliver@gmail.com", phone: "09021233431", role: "UX Researcher", rank: "UX Researcher", created: "09/12/2025", status: "SUSPENDED" },
-        { name: "Samuel Nasiru", email: "charlotte@gmail.com", phone: "09021233432", role: "System Admin", rank: "System Admin", created: "09/13/2025", status: "ACTIVE" },
-        { name: "Hannah Musa", email: "james@gmail.com", phone: "09021233433", role: "Content Strategist", rank: "Content Strategist", created: "09/14/2025", status: "ACTIVE" },
-        { name: "Samuel Nasiru", email: "emily@gmail.com", phone: "09021233433", role: "Business Analyst", rank: "Business Analyst", created: "09/15/2025", status: "SUSPENDED" }
-    ]);
+    const [adminList, setAdminList] = useState<any[]>([]);
 
     const [isAdminEmpty, setIsAdminEmpty] = useState(false);
     const [addAdminModalOpen, setAddAdminModalOpen] = useState(false);
@@ -41,19 +27,29 @@ export default function AdminManagementView() {
     // Selected checkboxes for bulk deletes/actions
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Form inputs
     const [adminFullName, setAdminFullName] = useState("");
     const [adminRoleName, setAdminRoleName] = useState("");
     const [adminRankName, setAdminRankName] = useState("");
     const [adminPhone, setAdminPhone] = useState("");
     const [adminEmail, setAdminEmail] = useState("");
-    const [adminPass, setAdminPass] = useState("");
+    const [adminPass, setAdminPass] = useState("TempPass123!");
+    const [adminStatus, setAdminStatus] = useState("ACTIVE");
 
     const [selectedAdminIndex, setSelectedAdminIndex] = useState<number | null>(null);
     const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
     const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
 
     const [activeRowPopup, setActiveRowPopup] = useState<number | null>(null);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [roleFilter, setRoleFilter] = useState("ALL");
+    const [statusFilterOpen, setStatusFilterOpen] = useState(false);
+    const [roleFilterOpen, setRoleFilterOpen] = useState(false);
 
     const rolesList = [
         "Support",
@@ -71,10 +67,43 @@ export default function AdminManagementView() {
         "Business Analyst"
     ];
 
-    const toggleRowPopup = (idx: number) => {
+    const fetchAdmins = async () => {
+        try {
+            const res = await fetch("/api/admin/users");
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    setAdminList(data.map((item: any) => ({
+                        id: item.id,
+                        name: item.name || item.username || "Admin",
+                        email: item.email || "N/A",
+                        phone: item.phone_number || item.phone || "N/A",
+                        role: item.rank || "Support",
+                        rank: item.rank || "Support",
+                        created: item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB") : "N/A",
+                        status: item.status ? item.status.toUpperCase() : "PENDING"
+                    })));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load admins:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdmins();
+    }, []);
+
+    const toggleRowPopup = (idx: number, event: React.MouseEvent) => {
+        event.stopPropagation();
         if (activeRowPopup === idx) {
             setActiveRowPopup(null);
         } else {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setPopupPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 140
+            });
             setActiveRowPopup(idx);
         }
     };
@@ -95,31 +124,132 @@ export default function AdminManagementView() {
         }
     };
 
-    const handleAddAdmin = () => {
-        if (!adminFullName || !adminRoleName || !adminEmail) {
+    const handleAddAdmin = async () => {
+        if (!adminFullName || !adminEmail) {
             alert("Please fill in all mandatory fields!");
             return;
         }
-        setAdminList([
-            {
-                name: adminFullName,
-                email: adminEmail,
-                phone: adminPhone || "N/A",
-                role: adminRoleName,
-                rank: adminRankName || adminRoleName,
-                created: "09/03/2025",
-                status: "ACTIVE"
-            },
-            ...adminList
+        setIsSubmitting(true);
+        try {
+            const res = await fetch("/api/admin/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: adminFullName,
+                    email: adminEmail,
+                    phone: adminPhone,
+                    password: adminPass || "TempPass123!",
+                    rank: adminRankName || adminRoleName || "Major"
+                })
+            });
+
+            if (res.ok) {
+                await fetchAdmins();
+                setAdminFullName("");
+                setAdminRoleName("");
+                setAdminRankName("");
+                setAdminPhone("");
+                setAdminEmail("");
+                setAdminPass("TempPass123!");
+                setAddAdminModalOpen(false);
+                setIsAdminEmpty(false);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert("Failed to add admin: " + (err.error || res.statusText));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network error. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEditAdmin = async () => {
+        if (!adminFullName) {
+            alert("Please enter the admin's name");
+            return;
+        }
+        if (editTargetIndex === null) return;
+        setIsSubmitting(true);
+        const currentAdmin = adminList[editTargetIndex];
+        try {
+            const res = await fetch(`/api/admin/users/${currentAdmin.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: adminFullName,
+                    phone: adminPhone,
+                    email: adminEmail,
+                    rank: adminRankName || adminRoleName || currentAdmin.rank,
+                    status: adminStatus || currentAdmin.status
+                })
+            });
+
+            if (res.ok) {
+                await fetchAdmins();
+                setEditAdminModalOpen(false);
+                setEditTargetIndex(null);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert("Failed to update admin: " + (err.error || res.statusText));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network error. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteAdmin = async (idx: number) => {
+        const admin = adminList[idx];
+        if (!admin || !admin.id) return;
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/admin/users/${admin.id}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchAdmins();
+                setDeleteAdminModalOpen(false);
+                setDeleteTargetIndex(null);
+            } else {
+                alert("Failed to delete admin");
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const filteredAdmins = adminList.filter(admin => {
+        const matchStatus = statusFilter === "ALL" || admin.status === statusFilter;
+        const matchRole = roleFilter === "ALL" || admin.role === roleFilter;
+        return matchStatus && matchRole;
+    });
+
+    const handleExportCSV = () => {
+        if (filteredAdmins.length === 0) return;
+        
+        const headers = ["Name", "Email", "Phone", "Role", "Rank", "Date Created", "Status"];
+        const rows = filteredAdmins.map(a => [
+            a.name, a.email, a.phone, a.role, a.rank, a.created, a.status
         ]);
-        setAdminFullName("");
-        setAdminRoleName("");
-        setAdminRankName("");
-        setAdminPhone("");
-        setAdminEmail("");
-        setAdminPass("");
-        setAddAdminModalOpen(false);
-        setIsAdminEmpty(false);
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `admins_export_${new Date().toISOString().split("T")[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -161,6 +291,7 @@ export default function AdminManagementView() {
                                     setAdminRankName(adminList[selectedAdminIndex].rank);
                                     setAdminPhone(adminList[selectedAdminIndex].phone);
                                     setAdminEmail(adminList[selectedAdminIndex].email);
+                                    setAdminStatus(adminList[selectedAdminIndex].status || "ACTIVE");
                                     setEditTargetIndex(selectedAdminIndex);
                                     setEditAdminModalOpen(true);
                                 }}
@@ -245,12 +376,49 @@ export default function AdminManagementView() {
                 <div className="space-y-6 flex-1 flex flex-col select-none">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
                         <div className="flex items-center gap-2 select-none">
-                            <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                                Status <ChevronDown size={12} />
-                            </button>
-                            <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                                Roles <ChevronDown size={12} />
-                            </button>
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+                                    className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm hover:bg-slate-50 transition-all"
+                                >
+                                    {statusFilter === "ALL" ? "Status" : statusFilter} <ChevronDown size={12} />
+                                </button>
+                                {statusFilterOpen && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-lg z-50 py-1 min-w-[120px]">
+                                        {["ALL", "APPROVED", "REJECTED", "SUSPENDED", "PENDING"].map(opt => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => { setStatusFilter(opt); setStatusFilterOpen(false); }}
+                                                className={`w-full text-left px-4 py-2 text-[10px] font-bold hover:bg-slate-50 ${statusFilter === opt ? "text-[#b68512]" : "text-slate-500"}`}
+                                            >
+                                                {opt === "ALL" ? "All Statuses" : opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setRoleFilterOpen(!roleFilterOpen)}
+                                    className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm hover:bg-slate-50 transition-all"
+                                >
+                                    {roleFilter === "ALL" ? "Roles" : roleFilter} <ChevronDown size={12} />
+                                </button>
+                                {roleFilterOpen && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-lg z-50 py-1 min-w-[120px] max-h-60 overflow-y-auto">
+                                        {["ALL", ...rolesList].map(opt => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => { setRoleFilter(opt); setRoleFilterOpen(false); }}
+                                                className={`w-full text-left px-4 py-2 text-[10px] font-bold hover:bg-slate-50 ${roleFilter === opt ? "text-[#b68512]" : "text-slate-500"}`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
                             <button
                                 onClick={() => setIsAdminEmpty(!isAdminEmpty)}
@@ -260,7 +428,7 @@ export default function AdminManagementView() {
                             </button>
                         </div>
 
-                        {/* Actions top right depending on row selection (Image 1) */}
+                        {/* Actions top right depending on row selection */}
                         <div className="flex items-center gap-3 select-none">
                             {selectedRows.length > 0 ? (
                                 <div className="flex items-center gap-2 select-none animate-fade-in">
@@ -273,6 +441,7 @@ export default function AdminManagementView() {
                                                 setAdminRankName(adminList[idx].rank);
                                                 setAdminPhone(adminList[idx].phone);
                                                 setAdminEmail(adminList[idx].email);
+                                                setAdminStatus(adminList[idx].status || "ACTIVE");
                                                 setEditTargetIndex(idx);
                                                 setEditAdminModalOpen(true);
                                             } else {
@@ -292,8 +461,11 @@ export default function AdminManagementView() {
                                 </div>
                             ) : (
                                 <>
-                                    <button className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1">
-                                        Export Or Import <ChevronDown size={13} className="text-slate-400" />
+                                    <button 
+                                        onClick={handleExportCSV}
+                                        className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1"
+                                    >
+                                        Export CSV <ChevronDown size={13} className="text-slate-400" />
                                     </button>
                                     <button
                                         onClick={() => {
@@ -314,28 +486,41 @@ export default function AdminManagementView() {
                         </div>
                     </div>
 
-                    {/* Check if is empty or populated */}
-                    {isAdminEmpty || adminList.length === 0 ? (
-                        /* Empty state exactly matching screenshot 1 */
+                    {/* Table View */}
+                    {isAdminEmpty || filteredAdmins.length === 0 ? (
                         <div className="bg-white p-12 flex flex-col items-center justify-center border border-slate-100 rounded-2xl min-h-[420px] text-center select-none shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
                             <div className="w-20 h-20 bg-slate-50 border border-slate-100/50 rounded-2xl flex items-center justify-center mb-4 select-none">
                                 <Folder className="w-10 h-10 text-slate-300" />
                             </div>
                             <h3 className="font-bold text-slate-800 text-sm tracking-tight leading-tight select-none">
-                                No Admin Here
+                                {isAdminEmpty ? "No Admin Here" : "No Admins Match Filters"}
                             </h3>
                             <p className="text-xs text-slate-400 max-w-sm mt-1 select-none font-medium leading-normal mb-5">
-                                It seems this section is currently empty. As you begin to add admins, they'll appear right here!
+                                {isAdminEmpty 
+                                    ? "It seems this section is currently empty. As you begin to add admins, they'll appear right here!"
+                                    : "Try adjusting your filters to see more results."}
                             </p>
                             <button
-                                onClick={() => setAddAdminModalOpen(true)}
+                                onClick={() => {
+                                    if (isAdminEmpty) {
+                                        setAddAdminModalOpen(true);
+                                    } else {
+                                        setStatusFilter("ALL");
+                                        setRoleFilter("ALL");
+                                    }
+                                }}
                                 className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-5 py-2 rounded-xl text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
                             >
-                                <Plus size={15} /> <span>Add Admin</span>
+                                {isAdminEmpty ? (
+                                    <>
+                                        <Plus size={15} /> <span>Add Admin</span>
+                                    </>
+                                ) : (
+                                    <span>Reset Filters</span>
+                                )}
                             </button>
                         </div>
                     ) : (
-                        /* Complete Table view exactly matching Screenshot 3 */
                         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between overflow-x-auto select-none relative">
                             <table className="w-full text-left border-collapse select-none">
                                 <thead>
@@ -373,7 +558,7 @@ export default function AdminManagementView() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 select-none">
-                                    {adminList.map((member, idx) => (
+                                    {filteredAdmins.map((member, idx) => (
                                         <tr
                                             key={idx}
                                             onClick={() => handleToggleRow(idx)}
@@ -414,8 +599,10 @@ export default function AdminManagementView() {
                                             <td className="py-4 px-2 select-none">
                                                 <span
                                                     className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                                        member.status === "ACTIVE"
+                                                        member.status === "APPROVED"
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                            : member.status === "PENDING"
+                                                            ? "bg-amber-50 text-amber-600 border border-amber-100"
                                                             : "bg-red-50 text-red-600 border border-red-100"
                                                     }`}
                                                 >
@@ -424,66 +611,71 @@ export default function AdminManagementView() {
                                             </td>
                                             <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600 relative">
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleRowPopup(idx);
-                                                    }}
-                                                    className="focus:outline-none select-none relative"
+                                                    onClick={(e) => toggleRowPopup(idx, e)}
+                                                    className="focus:outline-none select-none relative p-1 rounded-md hover:bg-slate-100"
                                                 >
                                                     <MoreHorizontal size={16} />
                                                 </button>
-
-                                                {/* Popup Menu Context matching Image 4 */}
-                                                {activeRowPopup === idx && (
-                                                    <div className="absolute right-6 top-10 w-36 bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-50 flex flex-col select-none animate-fade-in">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setAdminFullName(member.name);
-                                                                setAdminRoleName(member.role);
-                                                                setAdminRankName(member.rank);
-                                                                setAdminPhone(member.phone);
-                                                                setAdminEmail(member.email);
-                                                                setEditTargetIndex(idx);
-                                                                setActiveRowPopup(null);
-                                                                setEditAdminModalOpen(true);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                        >
-                                                            <Edit size={13} className="text-slate-400" />
-                                                            <span>Edit</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedAdminIndex(idx);
-                                                                setIsViewingAdmin(true);
-                                                                setActiveRowPopup(null);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                        >
-                                                            <Eye size={13} className="text-slate-400" />
-                                                            <span>View Admin</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setDeleteTargetIndex(idx);
-                                                                setActiveRowPopup(null);
-                                                                setDeleteAdminModalOpen(true);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
-                                                        >
-                                                            <Trash2 size={13} />
-                                                            <span>Delete</span>
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+
+                            {/* Fixed Positioned Popups to avoid clipping */}
+                            {activeRowPopup !== null && (
+                                <div 
+                                    className="fixed bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100] flex flex-col select-none animate-fade-in w-36"
+                                    style={{ 
+                                        top: `${popupPosition.top - window.scrollY}px`, 
+                                        left: `${popupPosition.left - window.scrollX}px` 
+                                    }}
+                                >
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const member = adminList[activeRowPopup];
+                                            setAdminFullName(member.name);
+                                            setAdminRoleName(member.role);
+                                            setAdminRankName(member.rank);
+                                            setAdminPhone(member.phone);
+                                            setAdminEmail(member.email);
+                                            setAdminStatus(member.status || "ACTIVE");
+                                            setEditTargetIndex(activeRowPopup);
+                                            setActiveRowPopup(null);
+                                            setEditAdminModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                                    >
+                                        <Edit size={13} className="text-slate-400" />
+                                        <span>Update Admin</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedAdminIndex(activeRowPopup);
+                                            setIsViewingAdmin(true);
+                                            setActiveRowPopup(null);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                                    >
+                                        <Eye size={13} className="text-slate-400" />
+                                        <span>View Admin</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteTargetIndex(activeRowPopup);
+                                            setActiveRowPopup(null);
+                                            setDeleteAdminModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Delete Admin</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -509,14 +701,6 @@ export default function AdminManagementView() {
                                 >
                                     <X size={18} />
                                 </button>
-                            </div>
-
-                            {/* Verification graphic badge */}
-                            <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center relative select-none">
-                                <Shield className="w-6 h-6 text-blue-500" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-50 border border-emerald-100 text-emerald-600 p-1 rounded-full text-[10px] flex items-center justify-center">
-                                    <Plus size={11} />
-                                </div>
                             </div>
 
                             <div className="space-y-4">
@@ -563,20 +747,6 @@ export default function AdminManagementView() {
                                 </div>
 
                                 <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="adminPass">
-                                        Password
-                                    </label>
-                                    <input
-                                        id="adminPass"
-                                        type="password"
-                                        value={adminPass}
-                                        onChange={(e) => setAdminPass(e.target.value)}
-                                        placeholder="e.g. 123456j6ht4g"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
-                                </div>
-
-                                <div className="space-y-1 select-none">
                                     <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="adminRole">
                                         Select Role
                                     </label>
@@ -587,23 +757,6 @@ export default function AdminManagementView() {
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 transition-all outline-none"
                                     >
                                         <option value="">Choose Role</option>
-                                        {rolesList.map((role) => (
-                                            <option key={role} value={role}>{role}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="adminRank">
-                                        Rank
-                                    </label>
-                                    <select
-                                        id="adminRank"
-                                        value={adminRankName}
-                                        onChange={(e) => setAdminRankName(e.target.value)}
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 transition-all outline-none"
-                                    >
-                                        <option value="">Choose Rank</option>
                                         {rolesList.map((role) => (
                                             <option key={role} value={role}>{role}</option>
                                         ))}
@@ -630,14 +783,13 @@ export default function AdminManagementView() {
                 </div>
             )}
 
-            {/* Edit Admin modal */}
-            {editAdminModalOpen && editTargetIndex !== null && (
+            {/* Edit Admin Sliding Modal */}
+            {editAdminModalOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end select-none">
                     <div
                         onClick={() => setEditAdminModalOpen(false)}
                         className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
+                    />
                     <div className="relative bg-white w-full max-w-sm h-full flex flex-col justify-between p-6 md:p-8 shadow-2xl border-l border-slate-100/50 select-none transform transition-all duration-300 animate-slide-in overflow-y-auto">
                         <div className="space-y-5 select-none">
                             <div className="flex items-center justify-between border-b border-slate-50 pb-4 select-none">
@@ -652,13 +804,6 @@ export default function AdminManagementView() {
                                 </button>
                             </div>
 
-                            <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center relative select-none">
-                                <User className="w-6 h-6 text-slate-400" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-amber-50 border border-amber-100 text-[#b68512] p-1 rounded-full text-[10px] flex items-center justify-center">
-                                    <Edit size={11} />
-                                </div>
-                            </div>
-
                             <div className="space-y-4">
                                 <div className="space-y-1 select-none">
                                     <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editAdminFullName">
@@ -670,20 +815,6 @@ export default function AdminManagementView() {
                                         value={adminFullName}
                                         onChange={(e) => setAdminFullName(e.target.value)}
                                         placeholder="e.g Nnaji Christian"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
-                                </div>
-
-                                <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editAdminEmail">
-                                        Email Address
-                                    </label>
-                                    <input
-                                        id="editAdminEmail"
-                                        type="email"
-                                        value={adminEmail}
-                                        onChange={(e) => setAdminEmail(e.target.value)}
-                                        placeholder="e.g dominic@mail.com"
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
@@ -721,18 +852,33 @@ export default function AdminManagementView() {
 
                                 <div className="space-y-1 select-none">
                                     <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editAdminRank">
-                                        Rank
+                                        Admin Rank
                                     </label>
-                                    <select
+                                    <input
                                         id="editAdminRank"
+                                        type="text"
                                         value={adminRankName}
                                         onChange={(e) => setAdminRankName(e.target.value)}
+                                        placeholder="e.g Major, Captain"
+                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1 select-none">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editAdminStatus">
+                                        Status
+                                    </label>
+                                    <select
+                                        id="editAdminStatus"
+                                        value={adminStatus}
+                                        onChange={(e) => setAdminStatus(e.target.value)}
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 transition-all outline-none"
                                     >
-                                        <option value="">Choose Rank</option>
-                                        {rolesList.map((role) => (
-                                            <option key={role} value={role}>{role}</option>
-                                        ))}
+                                        <option value="ACTIVE">ACTIVE</option>
+                                        <option value="APPROVED">APPROVED</option>
+                                        <option value="PENDING">PENDING</option>
+                                        <option value="SUSPENDED">SUSPENDED</option>
+                                        <option value="REJECTED">REJECTED</option>
                                     </select>
                                 </div>
                             </div>
@@ -741,128 +887,55 @@ export default function AdminManagementView() {
                         <div className="flex items-center gap-3 pt-6 select-none mt-4 border-t border-slate-50">
                             <button
                                 onClick={() => setEditAdminModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all leading-none"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    if (!adminFullName || !adminRoleName || !adminEmail) {
-                                        alert("Please fill in all mandatory fields!");
-                                        return;
-                                    }
-                                    const updated = [...adminList];
-                                    updated[editTargetIndex] = {
-                                        ...updated[editTargetIndex],
-                                        name: adminFullName,
-                                        email: adminEmail,
-                                        phone: adminPhone || "N/A",
-                                        role: adminRoleName,
-                                        rank: adminRankName || adminRoleName
-                                    };
-                                    setAdminList(updated);
-                                    setEditAdminModalOpen(false);
-                                }}
-                                className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none"
+                                onClick={handleEditAdmin}
+                                disabled={isSubmitting}
+                                className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none disabled:opacity-60"
                             >
-                                Update
+                                {isSubmitting ? "Saving..." : "Save Changes"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Normal single delete modal warning prompt */}
+            {/* Delete Admin Confirmation Modal */}
             {deleteAdminModalOpen && deleteTargetIndex !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
                     <div
                         onClick={() => setDeleteAdminModalOpen(false)}
                         className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
-                    <div className="relative bg-white w-full max-w-md h-auto p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center select-none transform transition-all duration-300 animate-fade-in">
-                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center font-semibold text-red-600 mb-4 select-none shadow-sm">
-                            <Trash2 className="w-8 h-8 text-red-600" />
-                        </div>
-
-                        <h3 className="font-bold text-slate-800 text-lg tracking-tight select-none mb-3">
-                            Delete Admin Member?
-                        </h3>
-
-                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl text-center mb-6 max-w-sm">
-                            <p className="text-[11px] text-slate-600 font-medium leading-normal flex items-start gap-1 select-none">
-                                ⚠️ You have selected these admin to delete. If this was the action that you wanted to do, please confirm your choice or cancel and return to the page.
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full select-none">
-                            <button
-                                onClick={() => setDeleteAdminModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
-                            >
-                                No, Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setAdminList(adminList.filter((_, i) => i !== deleteTargetIndex));
-                                    setDeleteAdminModalOpen(false);
-                                    setDeleteTargetIndex(null);
-                                    setIsViewingAdmin(false);
-                                }}
-                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
-                            >
-                                Yes, Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Bulk delete Confirmation Modal (Image 2) */}
-            {bulkDeleteModalOpen && selectedRows.length > 0 && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
-                    <div
-                        onClick={() => setBulkDeleteModalOpen(false)}
-                        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
-                    <div className="relative bg-white w-full max-w-md h-auto p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center select-none transform transition-all duration-300 animate-fade-in">
-                        {/* Close button at top-right */}
+                    />
+                    <div className="relative bg-white w-full max-w-md p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center text-center select-none animate-fade-in">
                         <button
-                            onClick={() => setBulkDeleteModalOpen(false)}
-                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all select-none"
+                            onClick={() => setDeleteAdminModalOpen(false)}
+                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
                         >
                             <X size={18} />
                         </button>
-
-                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center font-semibold text-red-600 mb-4 select-none shadow-sm">
+                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center mb-4">
                             <Trash2 className="w-8 h-8 text-red-600" />
                         </div>
-
-                        <h3 className="font-bold text-slate-800 text-lg tracking-tight select-none mb-3">
-                            Delete Users?
-                        </h3>
-
-                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl text-center mb-6 max-w-sm">
-                            <p className="text-[11px] text-slate-600 font-medium leading-normal flex items-start gap-1 select-none">
-                                ⚠️ You have selected these users to delete. If this was the action that you wanted to do, please confirm your choice or cancel and return to the page.
+                        <h3 className="font-bold text-slate-800 text-lg tracking-tight mb-3">Delete Admin?</h3>
+                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl mb-6 max-w-sm">
+                            <p className="text-[11px] text-slate-600 font-medium leading-normal">
+                                ⚠️ You are about to permanently delete this admin account. This action cannot be undone.
                             </p>
                         </div>
-
-                        <div className="flex items-center gap-3 w-full select-none">
+                        <div className="flex items-center gap-3 w-full">
                             <button
-                                onClick={() => setBulkDeleteModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                onClick={() => setDeleteAdminModalOpen(false)}
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs transition-all"
                             >
                                 No, Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    setAdminList(adminList.filter((_, i) => !selectedRows.includes(i)));
-                                    setSelectedRows([]);
-                                    setBulkDeleteModalOpen(false);
-                                }}
-                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
+                                onClick={() => handleDeleteAdmin(deleteTargetIndex)}
+                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs hover:scale-[1.01] transition-all shadow-sm"
                             >
                                 Yes, Delete
                             </button>

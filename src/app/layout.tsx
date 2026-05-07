@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 import QueryProvider from "@/providers/QueryProvider";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { StatusModalProvider } from "@/app/admin/components/StatusModalProvider";
 
 export default function RootLayout({
   children,
@@ -35,7 +36,9 @@ export default function RootLayout({
         <AuthProvider>
           <QueryProvider>
             <ChatProvider>
-              {children}
+              <StatusModalProvider>
+                {children}
+              </StatusModalProvider>
             </ChatProvider>
           </QueryProvider>
         </AuthProvider>

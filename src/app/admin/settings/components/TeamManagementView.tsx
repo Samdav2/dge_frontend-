@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ChevronDown,
     MoreHorizontal,
@@ -15,21 +15,7 @@ import {
 } from "lucide-react";
 
 export default function TeamManagementView() {
-    const [teamList, setTeamList] = useState([
-        { name: "Nnaji Christian", email: "chrisnnaji443@gmail.com", phone: "09021233422", role: "Support", created: "09/03/2025", status: "ACTIVE" },
-        { name: "Martha Dokubo", email: "sophia@gmail.com", phone: "09021233423", role: "Manager", created: "09/04/2025", status: "SUSPENDED" },
-        { name: "Elizabeth Bashir", email: "liam@gmail.com", phone: "09021233424", role: "Developer", created: "09/05/2025", status: "ACTIVE" },
-        { name: "John Bazimo", email: "ava@gmail.com", phone: "09021233425", role: "Designer", created: "09/06/2025", status: "ACTIVE" },
-        { name: "Daniel Ibe", email: "noah@gmail.com", phone: "09021233426", role: "Analyst", created: "09/07/2025", status: "SUSPENDED" },
-        { name: "John Okafor", email: "mason@gmail.com", phone: "09021233427", role: "Tester", created: "09/08/2025", status: "ACTIVE" },
-        { name: "Daniel Ibe", email: "isabella@gmail.com", phone: "09021233428", role: "Product Owner", created: "09/09/2025", status: "ACTIVE" },
-        { name: "John Okafor", email: "ethan@gmail.com", phone: "09021233429", role: "Data Scientist", created: "09/10/2025", status: "ACTIVE" },
-        { name: "Esther Okafor", email: "mia@gmail.com", phone: "09021233430", role: "Marketer", created: "09/11/2025", status: "ACTIVE" },
-        { name: "Joseph Werinipre", email: "oliver@gmail.com", phone: "09021233431", role: "UX Researcher", created: "09/12/2025", status: "SUSPENDED" },
-        { name: "Samuel Nasiru", email: "charlotte@gmail.com", phone: "09021233432", role: "System Admin", created: "09/13/2025", status: "ACTIVE" },
-        { name: "Hannah Musa", email: "james@gmail.com", phone: "09021233433", role: "Content Strategist", created: "09/14/2025", status: "ACTIVE" },
-        { name: "Samuel Nasiru", email: "emily@gmail.com", phone: "09021233433", role: "Business Analyst", created: "09/15/2025", status: "SUSPENDED" }
-    ]);
+    const [teamList, setTeamList] = useState<any[]>([]);
 
     const [isTeamEmpty, setIsTeamEmpty] = useState(false);
     const [addTeamMemberModalOpen, setAddTeamMemberModalOpen] = useState(false);
@@ -42,13 +28,21 @@ export default function TeamManagementView() {
     const [teamRoleName, setTeamRoleName] = useState("");
     const [teamPhone, setTeamPhone] = useState("");
     const [teamEmail, setTeamEmail] = useState("");
-    const [teamPass, setTeamPass] = useState("");
+    const [teamPass, setTeamPass] = useState("TempPass123!");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [selectedMemberIndex, setSelectedMemberIndex] = useState<number | null>(null);
     const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
     const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
 
     const [activeRowPopup, setActiveRowPopup] = useState<number | null>(null);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [roleFilter, setRoleFilter] = useState("ALL");
+    const [statusFilterOpen, setStatusFilterOpen] = useState(false);
+    const [roleFilterOpen, setRoleFilterOpen] = useState(false);
 
     const teamRolesList = [
         "Support",
@@ -66,37 +60,178 @@ export default function TeamManagementView() {
         "Business Analyst"
     ];
 
-    const toggleRowPopup = (idx: number) => {
+    const fetchTeams = async () => {
+        try {
+            const res = await fetch("/api/admin/teams");
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setTeamList(data.map((item: any) => ({
+                        id: item.id,
+                        name: item.full_name || item.name || item.username || "Team Member",
+                        email: item.email || "N/A",
+                        phone: item.phone || "N/A",
+                        role: item.is_superuser ? "Manager" : "Support",
+                        created: item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB") : "N/A",
+                        status: item.status ? item.status.toUpperCase() : "ACTIVE"
+                    })));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load teams:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchTeams();
+    }, []);
+
+    const toggleRowPopup = (idx: number, event: React.MouseEvent) => {
+        event.stopPropagation();
         if (activeRowPopup === idx) {
             setActiveRowPopup(null);
         } else {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setPopupPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 140
+            });
             setActiveRowPopup(idx);
         }
     };
 
-    const handleAddTeamMember = () => {
-        if (!teamFullName || !teamRoleName || !teamEmail) {
-            alert("Please fill in all mandatory fields!");
+    const handleAddTeamMember = async () => {
+        if (!teamFullName || !teamEmail) {
+            alert("Please fill in Full Name and Email!");
             return;
         }
-        setTeamList([
-            {
-                name: teamFullName,
-                email: teamEmail,
-                phone: teamPhone || "N/A",
-                role: teamRoleName,
-                created: "09/03/2025",
-                status: "ACTIVE"
-            },
-            ...teamList
+        setIsSubmitting(true);
+        try {
+            const res = await fetch("/api/admin/teams", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    full_name: teamFullName,
+                    email: teamEmail,
+                    phone: teamPhone,
+                    password: teamPass || "TempPass123!",
+                    is_superuser: teamRoleName === "Manager",
+                    status: "active"
+                })
+            });
+
+            if (res.ok) {
+                await fetchTeams();
+                setTeamFullName("");
+                setTeamRoleName("");
+                setTeamPhone("");
+                setTeamEmail("");
+                setTeamPass("TempPass123!");
+                setAddTeamMemberModalOpen(false);
+                setIsTeamEmpty(false);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert("Failed to add team member: " + (err.error || res.statusText));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network error. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEditTeamMember = async () => {
+        if (!teamFullName) {
+            alert("Please enter the member's name");
+            return;
+        }
+        if (editTargetIndex === null) return;
+        setIsSubmitting(true);
+        const currentMember = teamList[editTargetIndex];
+        try {
+            const res = await fetch(`/api/admin/teams/${currentMember.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: teamFullName,
+                    phone: teamPhone,
+                    status: "active"
+                })
+            });
+
+            if (res.ok) {
+                await fetchTeams();
+                setEditTeamMemberModalOpen(false);
+                setEditTargetIndex(null);
+            } else {
+                // Local fallback update
+                const updatedList = [...teamList];
+                updatedList[editTargetIndex] = {
+                    ...currentMember,
+                    name: teamFullName,
+                    phone: teamPhone
+                };
+                setTeamList(updatedList);
+                setEditTeamMemberModalOpen(false);
+                setEditTargetIndex(null);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network error. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteMember = async (idx: number) => {
+        const member = teamList[idx];
+        if (!member || !member.id) return;
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/admin/teams/${member.id}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchTeams();
+                setDeleteMemberModalOpen(false);
+                setDeleteTargetIndex(null);
+            } else {
+                alert("Failed to delete team member");
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const filteredTeam = teamList.filter(member => {
+        const matchStatus = statusFilter === "ALL" || member.status === statusFilter;
+        const matchRole = roleFilter === "ALL" || member.role === roleFilter;
+        return matchStatus && matchRole;
+    });
+
+    const handleExportCSV = () => {
+        if (filteredTeam.length === 0) return;
+        
+        const headers = ["Name", "Email", "Phone", "Role", "Date Created", "Status"];
+        const rows = filteredTeam.map(m => [
+            m.name, m.email, m.phone, m.role, m.created, m.status
         ]);
-        setTeamFullName("");
-        setTeamRoleName("");
-        setTeamPhone("");
-        setTeamEmail("");
-        setTeamPass("");
-        setAddTeamMemberModalOpen(false);
-        setIsTeamEmpty(false);
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `team_export_${new Date().toISOString().split("T")[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -115,14 +250,14 @@ export default function TeamManagementView() {
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col md:flex-row items-center justify-between gap-6 select-none">
                         <div className="flex items-center gap-5 select-none w-full">
                             <div className="w-20 h-20 rounded-full bg-slate-50 overflow-hidden border border-slate-100 flex items-center justify-center font-bold text-3xl text-[#b68512] shrink-0 select-none">
-                                {teamList[selectedMemberIndex].name.substring(0, 2).toUpperCase()}
+                                {teamList[selectedMemberIndex]?.name?.substring(0, 2).toUpperCase() || "TM"}
                             </div>
                             <div className="flex flex-col select-none leading-none">
                                 <span className="text-xs text-blue-500 font-bold tracking-tight select-none leading-none">
                                     User Profile
                                 </span>
                                 <h2 className="text-xl font-extrabold text-slate-800 tracking-tight leading-normal select-none">
-                                    {teamList[selectedMemberIndex].name}
+                                    {teamList[selectedMemberIndex]?.name || "Team Member"}
                                 </h2>
                                 <span className="text-[11px] font-medium text-slate-400 select-none leading-none mt-1">
                                     Team Member Since 14 04 2025 . 12:16AM
@@ -132,17 +267,18 @@ export default function TeamManagementView() {
 
                         <div className="flex items-center gap-3 select-none shrink-0">
                             <button
-                                onClick={() => alert("Email composer opening for " + teamList[selectedMemberIndex].email)}
+                                onClick={() => alert("Email composer opening for " + teamList[selectedMemberIndex]?.email)}
                                 className="px-4 py-2 border border-slate-200 hover:bg-slate-50 font-bold rounded-full text-xs text-slate-600 select-none shadow-sm transition-all leading-none flex items-center gap-1.5"
                             >
                                 <MessageSquare size={14} /> <span>Send Email</span>
                             </button>
                             <button
                                 onClick={() => {
-                                    setTeamFullName(teamList[selectedMemberIndex].name);
-                                    setTeamRoleName(teamList[selectedMemberIndex].role);
-                                    setTeamPhone(teamList[selectedMemberIndex].phone);
-                                    setTeamEmail(teamList[selectedMemberIndex].email);
+                                    if (selectedMemberIndex === null) return;
+                                    setTeamFullName(teamList[selectedMemberIndex]?.name || "");
+                                    setTeamRoleName(teamList[selectedMemberIndex]?.role || "");
+                                    setTeamPhone(teamList[selectedMemberIndex]?.phone || "");
+                                    setTeamEmail(teamList[selectedMemberIndex]?.email || "");
                                     setEditTargetIndex(selectedMemberIndex);
                                     setEditTeamMemberModalOpen(true);
                                 }}
@@ -162,7 +298,6 @@ export default function TeamManagementView() {
                         </div>
                     </div>
 
-                    {/* Form sections: Personal Information and Account Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none max-w-5xl">
                         {/* Personal Information */}
                         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between select-none">
@@ -173,115 +308,72 @@ export default function TeamManagementView() {
                                 <div className="flex flex-col select-none leading-tight">
                                     <span className="text-[10px] text-slate-400 font-bold select-none">Full Name</span>
                                     <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        {teamList[selectedMemberIndex].name}
+                                        {teamList[selectedMemberIndex]?.name || "—"}
                                     </span>
                                 </div>
-
                                 <div className="flex flex-col select-none leading-tight">
                                     <span className="text-[10px] text-slate-400 font-bold select-none">Phone Number</span>
                                     <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        {teamList[selectedMemberIndex].phone}
+                                        {teamList[selectedMemberIndex]?.phone || "—"}
                                     </span>
                                 </div>
-
                                 <div className="flex flex-col select-none leading-tight">
                                     <span className="text-[10px] text-slate-400 font-bold select-none">Email Address</span>
                                     <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        {teamList[selectedMemberIndex].email}
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-col select-none leading-tight">
-                                    <span className="text-[10px] text-slate-400 font-bold select-none">Password</span>
-                                    <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        ************
+                                        {teamList[selectedMemberIndex]?.email || "—"}
                                     </span>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Account Information */}
-                        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between select-none">
-                            <h4 className="text-xs font-extrabold text-slate-800 select-none mb-4 tracking-tight">
-                                Account Information
-                            </h4>
-                            <div className="space-y-4 select-none leading-none">
-                                <div className="flex flex-col select-none leading-tight">
-                                    <span className="text-[10px] text-slate-400 font-bold select-none">Date Created</span>
-                                    <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        2024-01-15
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-col select-none leading-tight">
-                                    <span className="text-[10px] text-slate-400 font-bold select-none">Last Login</span>
-                                    <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        2024-10-07 14:23:45
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-col select-none leading-tight">
-                                    <span className="text-[10px] text-slate-400 font-bold select-none">Last IP Address</span>
-                                    <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                        192.168.1.1
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between select-none leading-tight">
-                                    <div className="flex flex-col select-none leading-tight">
-                                        <span className="text-[10px] text-slate-400 font-bold select-none">Email Verification</span>
-                                        <span className="font-bold text-xs text-slate-800 mt-1 select-none leading-tight">
-                                            Verified
-                                        </span>
-                                    </div>
-                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex select-none mr-2"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Permissions Grid Table */}
-                    <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] select-none max-w-5xl">
-                        <h4 className="text-xs font-bold text-slate-800 select-none mb-4 tracking-tight">
-                            Permissions
-                        </h4>
-                        <div className="space-y-5 select-none leading-none">
-                            {(["Dashboard", "Analytics", "Reports", "Settings", "User Management"] as const).map((permSection) => (
-                                <div key={permSection} className="space-y-2 select-none border-b border-slate-50 pb-3">
-                                    <span className="text-[10px] font-bold text-slate-400 select-none uppercase tracking-wide">
-                                        {permSection}
-                                    </span>
-                                    <div className="flex items-center gap-6 select-none">
-                                        {(["Create", "View", "Update", "Delete"] as const).map((action) => (
-                                            <label key={action} className="flex items-center gap-1.5 select-none cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    defaultChecked={action === "Update" || action === "Delete"}
-                                                    className="w-3.5 h-3.5 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
-                                                />
-                                                <span className="text-[10px] font-medium text-slate-500 select-none">
-                                                    {action}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>
             ) : (
-                /* List & controls sub-page exactly matching screenshot 4 */
                 <div className="space-y-6 flex-1 flex flex-col select-none">
-                    {/* Action Buttons Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
                         <div className="flex items-center gap-2 select-none">
-                            <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                                Status <ChevronDown size={12} />
-                            </button>
-                            <button className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                                Roles <ChevronDown size={12} />
-                            </button>
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+                                    className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm hover:bg-slate-50 transition-all"
+                                >
+                                    {statusFilter === "ALL" ? "Status" : statusFilter} <ChevronDown size={12} />
+                                </button>
+                                {statusFilterOpen && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-lg z-50 py-1 min-w-[120px]">
+                                        {["ALL", "ACTIVE", "INACTIVE", "BANNED"].map(opt => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => { setStatusFilter(opt); setStatusFilterOpen(false); }}
+                                                className={`w-full text-left px-4 py-2 text-[10px] font-bold hover:bg-slate-50 ${statusFilter === opt ? "text-[#b68512]" : "text-slate-500"}`}
+                                            >
+                                                {opt === "ALL" ? "All Statuses" : opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setRoleFilterOpen(!roleFilterOpen)}
+                                    className="px-3 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm hover:bg-slate-50 transition-all"
+                                >
+                                    {roleFilter === "ALL" ? "Roles" : roleFilter} <ChevronDown size={12} />
+                                </button>
+                                {roleFilterOpen && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-lg z-50 py-1 min-w-[120px] max-h-60 overflow-y-auto">
+                                        {["ALL", ...teamRolesList].map(opt => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => { setRoleFilter(opt); setRoleFilterOpen(false); }}
+                                                className={`w-full text-left px-4 py-2 text-[10px] font-bold hover:bg-slate-50 ${roleFilter === opt ? "text-[#b68512]" : "text-slate-500"}`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
                             <button
                                 onClick={() => setIsTeamEmpty(!isTeamEmpty)}
@@ -292,8 +384,11 @@ export default function TeamManagementView() {
                         </div>
 
                         <div className="flex items-center gap-3 select-none">
-                            <button className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1">
-                                Export Or Import <ChevronDown size={13} className="text-slate-400" />
+                            <button 
+                                onClick={handleExportCSV}
+                                className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] text-slate-600 hover:bg-slate-50 select-none shadow-sm transition-all flex items-center gap-1"
+                            >
+                                Export CSV <ChevronDown size={13} className="text-slate-400" />
                             </button>
                             <button
                                 onClick={() => {
@@ -311,23 +406,37 @@ export default function TeamManagementView() {
                         </div>
                     </div>
 
-                    {/* Table View exactly matching Image 4 */}
-                    {isTeamEmpty || teamList.length === 0 ? (
+                    {isTeamEmpty || filteredTeam.length === 0 ? (
                         <div className="bg-white p-12 flex flex-col items-center justify-center border border-slate-100 rounded-2xl min-h-[420px] text-center select-none shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
                             <div className="w-20 h-20 bg-slate-50 border border-slate-100/50 rounded-2xl flex items-center justify-center mb-4 select-none">
                                 <Folder className="w-10 h-10 text-slate-300" />
                             </div>
                             <h3 className="font-bold text-slate-800 text-sm tracking-tight leading-tight select-none">
-                                No Team Member Here
+                                {isTeamEmpty ? "No Members Here" : "No Members Match Filters"}
                             </h3>
                             <p className="text-xs text-slate-400 max-w-sm mt-1 select-none font-medium leading-normal mb-5">
-                                It seems this section is currently empty. As you begin to add team members, they'll appear right here!
+                                {isTeamEmpty 
+                                    ? "It seems this section is currently empty. As you begin to add team members, they'll appear right here!"
+                                    : "Try adjusting your filters to see more results."}
                             </p>
                             <button
-                                onClick={() => setAddTeamMemberModalOpen(true)}
+                                onClick={() => {
+                                    if (isTeamEmpty) {
+                                        setAddTeamMemberModalOpen(true);
+                                    } else {
+                                        setStatusFilter("ALL");
+                                        setRoleFilter("ALL");
+                                    }
+                                }}
                                 className="bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-5 py-2 rounded-xl text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm transition-all flex items-center gap-1"
                             >
-                                <Plus size={15} /> <span>Add Team Member</span>
+                                {isTeamEmpty ? (
+                                    <>
+                                        <Plus size={15} /> <span>Add Team Member</span>
+                                    </>
+                                ) : (
+                                    <span>Reset Filters</span>
+                                )}
                             </button>
                         </div>
                     ) : (
@@ -362,9 +471,16 @@ export default function TeamManagementView() {
                                         <th className="py-3 px-2 w-8"></th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50 select-none">
-                                    {teamList.map((member, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none relative">
+                                <tbody className="divide-y divide-slate-50 select-none leading-none">
+                                    {filteredTeam.map((member, idx) => (
+                                        <tr
+                                            key={idx}
+                                            onClick={() => {
+                                                setSelectedMemberIndex(idx);
+                                                setIsViewingMember(true);
+                                            }}
+                                            className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none relative"
+                                        >
                                             <td className="py-4 px-2 select-none">
                                                 <input
                                                     type="checkbox"
@@ -391,6 +507,8 @@ export default function TeamManagementView() {
                                                     className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
                                                         member.status === "ACTIVE"
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                            : member.status === "INACTIVE"
+                                                            ? "bg-slate-50 text-slate-400 border border-slate-100"
                                                             : "bg-red-50 text-red-600 border border-red-100"
                                                     }`}
                                                 >
@@ -399,64 +517,75 @@ export default function TeamManagementView() {
                                             </td>
                                             <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600 relative">
                                                 <button
-                                                    onClick={() => toggleRowPopup(idx)}
-                                                    className="focus:outline-none select-none relative"
+                                                    onClick={(e) => toggleRowPopup(idx, e)}
+                                                    className="focus:outline-none select-none relative p-1 rounded-md hover:bg-slate-100"
                                                 >
                                                     <MoreHorizontal size={16} />
                                                 </button>
-
-                                                {activeRowPopup === idx && (
-                                                    <div className="absolute right-6 top-10 w-36 bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-50 flex flex-col select-none">
-                                                        <button
-                                                            onClick={() => {
-                                                                setTeamFullName(member.name);
-                                                                setTeamRoleName(member.role);
-                                                                setTeamPhone(member.phone);
-                                                                setTeamEmail(member.email);
-                                                                setEditTargetIndex(idx);
-                                                                setActiveRowPopup(null);
-                                                                setEditTeamMemberModalOpen(true);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                        >
-                                                            <Edit size={13} className="text-slate-400" />
-                                                            <span>Edit</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedMemberIndex(idx);
-                                                                setIsViewingMember(true);
-                                                                setActiveRowPopup(null);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
-                                                        >
-                                                            <Eye size={13} className="text-slate-400" />
-                                                            <span>View Member</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setDeleteTargetIndex(idx);
-                                                                setActiveRowPopup(null);
-                                                                setDeleteMemberModalOpen(true);
-                                                            }}
-                                                            className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
-                                                        >
-                                                            <Trash2 size={13} />
-                                                            <span>Delete</span>
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+
+                            {/* Fixed Positioned Popups to avoid clipping */}
+                            {activeRowPopup !== null && (
+                                <div 
+                                    className="fixed bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100] flex flex-col select-none animate-fade-in w-36"
+                                    style={{ 
+                                        top: `${popupPosition.top - window.scrollY}px`, 
+                                        left: `${popupPosition.left - window.scrollX}px` 
+                                    }}
+                                >
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const member = teamList[activeRowPopup];
+                                            setTeamFullName(member.name);
+                                            setTeamRoleName(member.role);
+                                            setTeamPhone(member.phone);
+                                            setTeamEmail(member.email);
+                                            setEditTargetIndex(activeRowPopup);
+                                            setActiveRowPopup(null);
+                                            setEditTeamMemberModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                                    >
+                                        <Edit size={13} className="text-slate-400" />
+                                        <span>Edit</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedMemberIndex(activeRowPopup);
+                                            setIsViewingMember(true);
+                                            setActiveRowPopup(null);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold select-none transition-all text-left"
+                                    >
+                                        <Eye size={13} className="text-slate-400" />
+                                        <span>View Member</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteTargetIndex(activeRowPopup);
+                                            setActiveRowPopup(null);
+                                            setDeleteMemberModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold select-none transition-all text-left border-t border-slate-50 mt-1 pt-2"
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Delete Member</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Slide Overs and Modals */}
+            {/* Modal for Creating Team Member */}
             {addTeamMemberModalOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end select-none">
                     <div
@@ -476,13 +605,6 @@ export default function TeamManagementView() {
                                 >
                                     <X size={18} />
                                 </button>
-                            </div>
-
-                            <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center relative select-none">
-                                <User className="w-6 h-6 text-slate-400" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-amber-50 border border-amber-100 text-[#b68512] p-1 rounded-full text-[10px] flex items-center justify-center">
-                                    <Plus size={11} />
-                                </div>
                             </div>
 
                             <div className="space-y-4">
@@ -544,57 +666,13 @@ export default function TeamManagementView() {
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
-
-                                <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="pass">
-                                        Password
-                                    </label>
-                                    <input
-                                        id="pass"
-                                        type="password"
-                                        value={teamPass}
-                                        onChange={(e) => setTeamPass(e.target.value)}
-                                        placeholder="e.g. 123456j6ht4g"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
-                                </div>
-
-                                <div className="pt-2 select-none border-t border-slate-50 mt-4">
-                                    <h4 className="text-xs font-bold text-slate-800 select-none mb-3">
-                                        Access Permission
-                                    </h4>
-
-                                    <div className="space-y-3.5 select-none leading-none">
-                                        {(["Dashboard", "Analytics", "Reports", "User Management"] as const).map((permSection) => (
-                                            <div key={permSection} className="space-y-1.5 select-none leading-none">
-                                                <span className="text-[10px] font-bold text-slate-400 select-none uppercase tracking-wide">
-                                                    {permSection}
-                                                </span>
-                                                <div className="flex items-center gap-4 select-none leading-none">
-                                                    {(["Create", "View", "Update", "Delete"] as const).map((action) => (
-                                                        <label key={action} className="flex items-center gap-1.5 cursor-pointer select-none leading-none">
-                                                            <input
-                                                                type="checkbox"
-                                                                defaultChecked={action === "Update" || action === "Delete"}
-                                                                className="w-3.5 h-3.5 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
-                                                            />
-                                                            <span className="text-[10px] font-medium text-slate-500 select-none">
-                                                                {action}
-                                                            </span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3 pt-6 select-none mt-4 border-t border-slate-50">
                             <button
                                 onClick={() => setAddTeamMemberModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all leading-none"
                             >
                                 Cancel
                             </button>
@@ -609,7 +687,8 @@ export default function TeamManagementView() {
                 </div>
             )}
 
-            {editTeamMemberModalOpen && editTargetIndex !== null && (
+            {/* Modal for Editing Team Member */}
+            {editTeamMemberModalOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end select-none">
                     <div
                         onClick={() => setEditTeamMemberModalOpen(false)}
@@ -630,14 +709,6 @@ export default function TeamManagementView() {
                                 </button>
                             </div>
 
-                            <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center relative select-none">
-                                <User className="w-6 h-6 text-slate-400" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-amber-50 border border-amber-100 text-[#b68512] p-1 rounded-full text-[10px] flex items-center justify-center">
-                                    <Edit size={11} />
-                                </div>
-                            </div>
-
-                            {/* Edit inputs */}
                             <div className="space-y-4">
                                 <div className="space-y-1 select-none">
                                     <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editFullName">
@@ -697,123 +768,60 @@ export default function TeamManagementView() {
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
-
-                                <div className="space-y-1 select-none">
-                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="editPass">
-                                        Password
-                                    </label>
-                                    <input
-                                        id="editPass"
-                                        type="password"
-                                        value={teamPass}
-                                        onChange={(e) => setTeamPass(e.target.value)}
-                                        placeholder="e.g. 123456j6ht4g"
-                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                                    />
-                                </div>
-
-                                <div className="pt-2 select-none border-t border-slate-50 mt-4">
-                                    <h4 className="text-xs font-bold text-slate-800 select-none mb-3">
-                                        Access Permission
-                                    </h4>
-
-                                    <div className="space-y-3.5 select-none leading-none">
-                                        {(["Dashboard", "Analytics", "Reports", "User Management"] as const).map((permSection) => (
-                                            <div key={permSection} className="space-y-1.5 select-none leading-none">
-                                                <span className="text-[10px] font-bold text-slate-400 select-none uppercase tracking-wide">
-                                                    {permSection}
-                                                </span>
-                                                <div className="flex items-center gap-4 select-none leading-none">
-                                                    {(["Create", "View", "Update", "Delete"] as const).map((action) => (
-                                                        <label key={action} className="flex items-center gap-1.5 cursor-pointer select-none leading-none">
-                                                            <input
-                                                                type="checkbox"
-                                                                defaultChecked={action === "Update" || action === "Delete"}
-                                                                className="w-3.5 h-3.5 rounded border-slate-200 focus:ring-amber-500 text-amber-600 bg-white"
-                                                            />
-                                                            <span className="text-[10px] font-medium text-slate-500 select-none">
-                                                                {action}
-                                                            </span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3 pt-6 select-none mt-4 border-t border-slate-50">
                             <button
                                 onClick={() => setEditTeamMemberModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-full text-slate-600 font-bold text-xs select-none transition-all leading-none"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    if (!teamFullName || !teamRoleName || !teamEmail) {
-                                        alert("Please fill in all mandatory fields!");
-                                        return;
-                                    }
-                                    const updated = [...teamList];
-                                    updated[editTargetIndex] = {
-                                        ...updated[editTargetIndex],
-                                        name: teamFullName,
-                                        email: teamEmail,
-                                        phone: teamPhone || "N/A",
-                                        role: teamRoleName
-                                    };
-                                    setTeamList(updated);
-                                    setEditTeamMemberModalOpen(false);
-                                }}
+                                onClick={handleEditTeamMember}
                                 className="flex-1 bg-[#b68512] hover:bg-[#9d720f] active:bg-[#85610d] px-3.5 py-2 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] shadow-sm leading-none"
                             >
-                                Update
+                                Update Member
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Delete Confirmation Modal */}
             {deleteMemberModalOpen && deleteTargetIndex !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
                     <div
                         onClick={() => setDeleteMemberModalOpen(false)}
                         className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-all"
-                    ></div>
-
-                    <div className="relative bg-white w-full max-w-md h-auto p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center select-none transform transition-all duration-300 animate-fade-in">
-                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center font-semibold text-red-600 mb-4 select-none shadow-sm">
+                    />
+                    <div className="relative bg-white w-full max-w-md p-6 md:p-8 rounded-2xl border border-slate-100 shadow-2xl flex flex-col items-center text-center select-none animate-fade-in">
+                        <button
+                            onClick={() => setDeleteMemberModalOpen(false)}
+                            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                        >
+                            <X size={18} />
+                        </button>
+                        <div className="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center mb-4">
                             <Trash2 className="w-8 h-8 text-red-600" />
                         </div>
-
-                        <h3 className="font-bold text-slate-800 text-lg tracking-tight select-none mb-3">
-                            Delete Team Member?
-                        </h3>
-
-                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl text-center mb-6 max-w-sm">
-                            <p className="text-[11px] text-slate-600 font-medium leading-normal flex items-start gap-1 select-none">
-                                ⚠️ You have selected these team member to delete. If this was the action that you wanted to do, please confirm your choice or cancel and return to the page.
+                        <h3 className="font-bold text-slate-800 text-lg tracking-tight mb-3">Delete Team Member?</h3>
+                        <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-xl mb-6 max-w-sm">
+                            <p className="text-[11px] text-slate-600 font-medium leading-normal">
+                                ⚠️ You are about to permanently delete this team member. This action cannot be undone.
                             </p>
                         </div>
-
-                        <div className="flex items-center gap-3 w-full select-none">
+                        <div className="flex items-center gap-3 w-full">
                             <button
                                 onClick={() => setDeleteMemberModalOpen(false)}
-                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs select-none transition-all"
+                                className="flex-1 border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-full text-slate-600 font-bold text-xs transition-all"
                             >
                                 No, Cancel
                             </button>
                             <button
-                                onClick={() => {
-                                    setTeamList(teamList.filter((_, i) => i !== deleteTargetIndex));
-                                    setDeleteMemberModalOpen(false);
-                                    setDeleteTargetIndex(null);
-                                    setIsViewingMember(false);
-                                }}
-                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs select-none hover:scale-[1.01] transition-all shadow-sm leading-none"
+                                onClick={() => handleDeleteMember(deleteTargetIndex)}
+                                className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 rounded-full text-white font-bold text-xs hover:scale-[1.01] transition-all shadow-sm"
                             >
                                 Yes, Delete
                             </button>

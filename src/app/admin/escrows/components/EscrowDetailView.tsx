@@ -11,6 +11,8 @@ interface EscrowDetailViewProps {
 export default function EscrowDetailView({ item, onBack }: EscrowDetailViewProps) {
     const [selectedTab, setSelectedTab] = useState<"Overview" | "Timeline">("Overview");
 
+    if (!item) return null;
+
     return (
         <div className="space-y-6 flex-1 flex flex-col select-none animate-fade-in pt-2">
             {/* Back button */}
@@ -26,14 +28,14 @@ export default function EscrowDetailView({ item, onBack }: EscrowDetailViewProps
                 <div className="flex flex-col select-none">
                     <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-xl font-bold tracking-tight text-slate-800 leading-none">
-                            {item.service || "Fix Kitchen Sink Leakage"}
+                            {item.service_name || "Service Details"}
                         </h2>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] bg-blue-50 text-blue-600 border border-blue-100 select-none">
-                            Active
+                            {item.status || "Active"}
                         </span>
                     </div>
                     <span className="text-xs text-slate-400 font-semibold select-none leading-none">
-                        Job ID: JB-00456789 . Posted on {item.date || "09/03/2025"}
+                        Escrow ID: {item.id} . Created on {item.created_at || "—"}
                     </span>
                 </div>
 
@@ -47,10 +49,10 @@ export default function EscrowDetailView({ item, onBack }: EscrowDetailViewProps
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between h-[115px] select-none hover:scale-[1.01] transition-all cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.01)] relative">
                     <div className="flex flex-col select-none leading-none">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none leading-tight mb-2">
-                            Negotiation price
+                            Total amount
                         </span>
                         <span className="text-2xl font-bold tracking-tight text-slate-800 select-none">
-                            ₦25,000
+                            {item.amount || "₦0.00"}
                         </span>
                     </div>
                     <div className="text-slate-100 font-extrabold text-4xl select-none absolute right-6 top-1/2 -translate-y-1/2 select-none pointer-events-none">
@@ -138,40 +140,33 @@ export default function EscrowDetailView({ item, onBack }: EscrowDetailViewProps
                                     </h4>
                                     <div className="flex items-center gap-3 pt-1 select-none">
                                         <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-blue-400 font-bold text-sm">
-                                            SJ
+                                            {item.payer_name?.substring(0, 2).toUpperCase() || "PY"}
                                         </div>
                                         <div className="flex flex-col select-none leading-tight">
                                             <span className="font-bold text-xs text-slate-800">
-                                                Sarah Johnson
+                                                {item.payer_name || "Payer"}
                                             </span>
                                             <span className="text-[10px] text-slate-400 font-semibold select-none mt-0.5">
-                                                sarah.j@email.com
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 font-semibold select-none mt-0.5">
-                                                +234 801 234 5678
+                                                User (Client)
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Buyer block */}
+                                {/* Payee block */}
                                 <div className="space-y-3 pt-2">
                                     <h4 className="text-xs font-bold text-slate-800 tracking-tight border-b border-slate-50 pb-2.5 leading-none">
-                                        Buyer
+                                        Payee
                                     </h4>
                                     <div className="flex items-center gap-3 pt-1 select-none">
                                         <div className="w-10 h-10 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-sm">
-                                            MD
+                                            {item.payee_name?.substring(0, 2).toUpperCase() || "PE"}
                                         </div>
                                         <div className="flex flex-col select-none leading-tight">
                                             <span className="font-bold text-xs text-slate-800">
-                                                Martha Dokubo
+                                                {item.payee_name || "Payee"}
                                             </span>
                                             <span className="text-[10px] text-slate-400 font-semibold select-none mt-0.5">
-                                                Professional Plumber
-                                            </span>
-                                            <span className="text-[10px] text-amber-500 font-semibold select-none mt-0.5 flex items-center gap-0.5">
-                                                ★ 4.9 <span className="text-slate-400 font-medium">(127 reviews)</span>
+                                                Provider (Freelancer)
                                             </span>
                                         </div>
                                     </div>

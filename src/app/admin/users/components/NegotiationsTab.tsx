@@ -1,101 +1,78 @@
 "use client";
 
-import { Search, ChevronDown, MoreHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Loader2, AlertCircle, MoreHorizontal } from "lucide-react";
 
-export default function NegotiationsTab() {
-    const negotiationsList = [
-        { title: "Urgently seeking skilled carpenter for custom...", negotiator: "Nnaji Christian", servicePrice: "₦9,900", negotiationPrice: "₦9,900", date: "09/03/2025", status: "PENDING" },
-        { title: "Looking for an experienced graphic designer...", negotiator: "Ikoro Jessica", servicePrice: "₦4,000", negotiationPrice: "₦4,000", date: "09/03/2025", status: "APPROVED" },
-        { title: "Looking for an experienced graphic designer...", negotiator: "Mabel Nzekew", servicePrice: "₦4,000", negotiationPrice: "₦4,000", date: "09/03/2025", status: "REJECTED" }
-    ];
+interface Negotiation {
+    id: string; title: string; negotiator: string;
+    servicePrice: string; negotiationPrice: string; date: string; status: string;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+    APPROVED: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+    ACCEPTED: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+    PENDING: "bg-amber-50 text-amber-600 border border-amber-100",
+    REJECTED: "bg-red-50 text-red-600 border border-red-100",
+};
+
+export default function NegotiationsTab({ userId }: { userId: string }) {
+    const [items, setItems] = useState<Negotiation[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        fetch(`/api/admin/platform-users/${userId}?tab=negotiations`)
+            .then(r => r.json()).then(d => setItems(Array.isArray(d) ? d : []))
+            .catch(e => setError(e.message)).finally(() => setLoading(false));
+    }, [userId]);
+
+    const filtered = items.filter(n =>
+        n.title.toLowerCase().includes(search.toLowerCase()) ||
+        n.negotiator.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <div className="space-y-6 flex-1 flex flex-col select-none animate-fade-in pt-2">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
-                <div className="flex items-center gap-2 select-none">
-                    <h3 className="font-bold text-slate-800 text-sm tracking-tight leading-tight select-none">
-                        Negotiations
-                    </h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-50 text-[#b68512] border border-amber-100 select-none">
-                        3 Negotiations
-                    </span>
-                </div>
-                <div className="flex items-center gap-2 select-none">
-                    <button className="px-3.5 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                        Status <ChevronDown size={12} />
-                    </button>
-                    <button className="px-3.5 py-1.5 bg-white border border-slate-100 rounded-xl font-bold text-[10px] text-slate-500 flex items-center gap-1 select-none shadow-sm">
-                        Date <ChevronDown size={12} />
-                    </button>
-                </div>
+            <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-800 text-sm tracking-tight">Negotiations</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-50 text-[#b68512] border border-amber-100">{items.length}</span>
             </div>
-
-            <div className="relative w-full max-w-sm select-none">
+            <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                <input
-                    type="text"
-                    placeholder="Search Record"
-                    className="w-full h-10 pl-10 pr-4 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
-                />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
+                    className="w-full h-10 pl-10 pr-4 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none" />
             </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between overflow-x-auto select-none relative">
-                <table className="w-full text-left border-collapse select-none">
-                    <thead>
-                        <tr className="border-b border-slate-50 select-none">
-                            <th className="py-3 px-2 w-10 select-none">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-200 text-amber-600 bg-white" />
-                            </th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Job Title</th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Negotiator Name</th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Service Price</th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Negotiation Price</th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Date of Negotiation</th>
-                            <th className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Job</th>
-                            <th className="py-3 px-2 w-8"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {negotiationsList.map((neg, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 cursor-pointer transition-colors select-none">
-                                <td className="py-4 px-2 select-none">
-                                    <input type="checkbox" className="w-4 h-4 rounded border-slate-200 text-amber-600 bg-white" />
-                                </td>
-                                <td className="py-4 px-2 text-xs font-bold text-slate-800 leading-none max-w-[200px] truncate select-none">
-                                    {neg.title}
-                                </td>
-                                <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                    {neg.negotiator}
-                                </td>
-                                <td className="py-4 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
-                                    {neg.servicePrice}
-                                </td>
-                                <td className="py-4 px-2 text-xs text-slate-500 font-semibold select-none leading-none">
-                                    {neg.negotiationPrice}
-                                </td>
-                                <td className="py-4 px-2 text-xs text-slate-400 font-medium select-none leading-none">
-                                    {neg.date}
-                                </td>
-                                <td className="py-4 px-2 select-none">
-                                    <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] select-none ${
-                                            neg.status === "APPROVED"
-                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                : neg.status === "PENDING"
-                                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                                : "bg-red-50 text-red-600 border border-red-100"
-                                        }`}
-                                    >
-                                        {neg.status}
-                                    </span>
-                                </td>
-                                <td className="py-4 px-2 select-none text-slate-400 hover:text-slate-600">
-                                    <MoreHorizontal size={16} />
-                                </td>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] overflow-x-auto">
+                {loading ? <div className="flex items-center justify-center py-12"><Loader2 size={22} className="animate-spin text-slate-300" /></div>
+                : error ? <div className="flex flex-col items-center py-12 gap-2"><AlertCircle size={20} className="text-red-300" /><p className="text-xs text-slate-400">{error}</p></div>
+                : filtered.length === 0 ? <p className="text-xs text-slate-400 text-center py-12">No negotiations found</p>
+                : (
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-50">
+                                {["Title","Negotiator","Service Price","Negotiation Price","Date","Status",""].map(h => (
+                                    <th key={h} className="py-3 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                                ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filtered.map(n => (
+                                <tr key={n.id} className="hover:bg-slate-50/50 cursor-pointer transition-colors">
+                                    <td className="py-4 px-2 text-xs font-bold text-slate-800 max-w-[200px] truncate">{n.title}</td>
+                                    <td className="py-4 px-2 text-xs text-slate-400 font-medium">{n.negotiator}</td>
+                                    <td className="py-4 px-2 text-xs text-slate-500 font-semibold">{n.servicePrice}</td>
+                                    <td className="py-4 px-2 text-xs text-slate-500 font-semibold">{n.negotiationPrice}</td>
+                                    <td className="py-4 px-2 text-xs text-slate-400 font-medium">{n.date}</td>
+                                    <td className="py-4 px-2">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[9px] ${STATUS_STYLES[n.status] ?? "bg-slate-50 text-slate-400 border border-slate-100"}`}>{n.status}</span>
+                                    </td>
+                                    <td className="py-4 px-2 text-slate-400"><MoreHorizontal size={16} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );
