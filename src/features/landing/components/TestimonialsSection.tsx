@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function TestimonialsSection() {
     return (
@@ -10,7 +11,7 @@ export function TestimonialsSection() {
                         <Card key={i} className="p-6 border shadow-sm">
                             <div className="flex items-center gap-4 mb-4">
                                 <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                                    <img src={`https://i.pravatar.cc/150?img=${i + 10}`} alt="User" />
+                                    <FallbackImage src={`https://i.pravatar.cc/150?img=${i + 10}`} alt="User" />
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-sm">Okunade-Praise Peculiar</h4>

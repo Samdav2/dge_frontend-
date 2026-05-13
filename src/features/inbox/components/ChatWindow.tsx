@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Conversation, Message } from "../types";
 import { getMessages, createMessage } from "../actions";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface ChatWindowProps {
     conversation: Conversation | null;
@@ -204,7 +205,7 @@ export function ChatWindow({
                         </Button>
                     )}
                     <div className="relative">
-                        <img
+                        <FallbackImage
                             src={getAvatarUrl()}
                             alt={getConversationTitle()}
                             className="w-10 h-10 rounded-full object-cover"
@@ -258,7 +259,7 @@ export function ChatWindow({
                                 className={`flex gap-2 md:gap-3 ${isMe ? "flex-row-reverse" : ""} ${isCallSystemMessage ? "justify-center w-full" : ""}`}
                             >
                                 {!isMe && !isCallSystemMessage && (
-                                    <img
+                                    <FallbackImage
                                         src={msg.sender?.avatar_url || getAvatarUrl()}
                                         alt="Avatar"
                                         className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover mt-auto"

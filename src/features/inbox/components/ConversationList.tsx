@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Conversation } from "../types";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface ConversationListProps {
     conversations: Conversation[];
@@ -105,7 +106,7 @@ export function ConversationList({
                                 }`}
                         >
                             <div className="relative">
-                                <img
+                                <FallbackImage
                                     src={getParticipantAvatar(conv)}
                                     alt={getConversationTitle(conv)}
                                     className="w-10 h-10 rounded-full object-cover"

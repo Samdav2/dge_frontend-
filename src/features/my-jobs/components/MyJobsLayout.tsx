@@ -5,13 +5,21 @@ import { Button } from "@/components/ui/button";
 import { MyServicesTab } from "./MyServicesTab";
 import { OngoingJobsTab } from "./OngoingJobsTab";
 import { SubmittedJobsTab } from "./SubmittedJobsTab";
+import { PostedJobsTab } from "./PostedJobsTab";
 import { CreateServiceModal } from "./CreateServiceModal";
 
-type Tab = "services" | "ongoing" | "submitted";
+type Tab = "services" | "ongoing" | "submitted" | "posted";
 
 export function MyJobsLayout() {
     const [activeTab, setActiveTab] = useState<Tab>("services");
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    const tabs: { id: Tab; label: string }[] = [
+        { id: "services", label: "My Services" },
+        { id: "ongoing", label: "Ongoing Jobs" },
+        { id: "submitted", label: "Submitted Jobs" },
+        { id: "posted", label: "Posted Jobs" },
+    ];
 
     return (
         <div className="p-4 md:p-8">
@@ -27,33 +35,19 @@ export function MyJobsLayout() {
             </div>
 
             <div className="bg-white rounded-2xl p-1 mb-6 flex overflow-x-auto scrollbar-hide border border-gray-100 max-w-full">
-                <button
-                    onClick={() => setActiveTab("services")}
-                    className={`px-6 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${activeTab === "services"
-                        ? "bg-[#C69C2E] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-900"
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`px-6 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                            activeTab === tab.id
+                                ? "bg-[#C69C2E] text-white shadow-sm"
+                                : "text-gray-500 hover:text-gray-900"
                         }`}
-                >
-                    My Services
-                </button>
-                <button
-                    onClick={() => setActiveTab("ongoing")}
-                    className={`px-6 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${activeTab === "ongoing"
-                        ? "bg-[#C69C2E] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-900"
-                        }`}
-                >
-                    Ongoing Jobs
-                </button>
-                <button
-                    onClick={() => setActiveTab("submitted")}
-                    className={`px-6 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${activeTab === "submitted"
-                        ? "bg-[#C69C2E] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-900"
-                        }`}
-                >
-                    Submitted Jobs
-                </button>
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             <div className="min-h-[400px]">
@@ -62,6 +56,7 @@ export function MyJobsLayout() {
                 )}
                 {activeTab === "ongoing" && <OngoingJobsTab />}
                 {activeTab === "submitted" && <SubmittedJobsTab />}
+                {activeTab === "posted" && <PostedJobsTab />}
             </div>
 
             <CreateServiceModal
@@ -71,3 +66,4 @@ export function MyJobsLayout() {
         </div>
     );
 }
+

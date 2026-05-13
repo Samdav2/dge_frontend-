@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface OngoingJobCardProps {
     id: string;
@@ -25,7 +26,7 @@ export function OngoingJobCard({
     return (
         <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-[#C69C2E] hover:shadow-lg transition-all duration-300 h-full flex flex-col">
             <div className="relative h-40 md:h-48 rounded-xl overflow-hidden mb-4 shrink-0">
-                <img
+                <FallbackImage
                     src={getBackendImageUrl(image)}
                     alt={title}
                     className="w-full h-full object-cover"

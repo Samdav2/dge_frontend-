@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function JobListingSection() {
     return (
@@ -8,7 +9,7 @@ export function JobListingSection() {
                 <div className="bg-[#FFFBF0] rounded-[3rem] p-8 md:p-16 flex flex-col md:flex-row items-center gap-12">
                     <div className="flex-1 order-2 md:order-1">
                         <div className="rounded-2xl overflow-hidden shadow-xl">
-                            <img
+                            <FallbackImage
                                 src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=2070&auto=format&fit=crop"
                                 alt="Job Listing"
                                 className="w-full h-auto object-cover"

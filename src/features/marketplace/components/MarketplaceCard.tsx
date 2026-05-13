@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import { getBackendImageUrl } from "@/lib/imageUtils";
 import { useState } from "react";
 import { ProfilePreviewModal } from "./ProfilePreviewModal";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface MarketplaceCardProps {
     id: string;
@@ -78,7 +79,7 @@ export function MarketplaceCard({
             <Link href={`/dashboard/marketplace/${id}`}>
                 <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-[#C69C2E] hover:shadow-lg transition-all duration-300 group cursor-pointer h-full flex flex-col">
                     <div className="relative h-40 rounded-xl overflow-hidden mb-4 shrink-0">
-                        <img
+                        <FallbackImage
                             src={getBackendImageUrl(image)}
                             alt={title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -137,7 +138,7 @@ export function MarketplaceCard({
                             >
                                 <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                                     {author.image ? (
-                                        <img src={getBackendImageUrl(author.image)} alt={author.name} className="w-full h-full object-cover" />
+                                        <FallbackImage src={getBackendImageUrl(author.image)} alt={author.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-xs font-bold text-gray-500">{author.name.charAt(0).toUpperCase()}</span>
                                     )}

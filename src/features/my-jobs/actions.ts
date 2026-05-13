@@ -329,3 +329,77 @@ export async function listCategories() {
         return { success: false, error: "Network error" };
     }
 }
+// List work submissions
+export async function listWorkSubmissions() {
+    const session = await auth();
+
+    if (!session || !session.backendToken) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    let token = session.backendToken;
+    if (typeof token === 'string' && token.startsWith('"') && token.endsWith('"')) {
+        token = token.slice(1, -1);
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiKey = process.env.BACKEND_API_KEY;
+
+    try {
+        const response = await fetch(`${apiUrl}/work_submissions/work_submissions/`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "X-API-KEY": apiKey || "",
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch submissions" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("List submissions error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+// Get single work submission
+export async function getWorkSubmission(id: string) {
+    const session = await auth();
+
+    if (!session || !session.backendToken) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    let token = session.backendToken;
+    if (typeof token === 'string' && token.startsWith('"') && token.endsWith('"')) {
+        token = token.slice(1, -1);
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiKey = process.env.BACKEND_API_KEY;
+
+    try {
+        const response = await fetch(`${apiUrl}/work_submissions/work_submissions/${id}`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "X-API-KEY": apiKey || "",
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch submission" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get submission error:", error);
+        return { success: false, error: "Network error" };
+    }
+}

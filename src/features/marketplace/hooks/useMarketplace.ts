@@ -1,11 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { listServices, getService } from "../actions";
+import { listServices, getService, listCategories, ServiceFilters } from "../actions";
 
-export function useServices(onlyMine: boolean = false) {
+export function useServices(filters: ServiceFilters = {}) {
     return useQuery({
-        queryKey: ["services", { onlyMine }],
+        queryKey: ["services", filters],
         queryFn: async () => {
-            const result = await listServices({ onlyMine });
+            const result = await listServices(filters);
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return result.data;
+        },
+    });
+}
+
+export function useCategories() {
+    return useQuery({
+        queryKey: ["categories"],
+        queryFn: async () => {
+            const result = await listCategories();
             if (!result.success) {
                 throw new Error(result.error);
             }

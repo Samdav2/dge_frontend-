@@ -14,6 +14,7 @@ import {
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { updateProfile, getProfile } from "../actions";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -145,7 +146,7 @@ export function PersonalSettings() {
                     className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center mb-4 border border-gray-100 cursor-pointer hover:border-[#C69C2E] transition-colors overflow-hidden"
                 >
                     {avatarPreview ? (
-                        <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                        <FallbackImage src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                         <ImageIcon className="w-8 h-8 text-gray-300" />
                     )}

@@ -2,9 +2,55 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Globe, Phone, Mail, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft, Globe, Mail, Loader2, CheckCircle2, Clock, FileText, Wallet } from "lucide-react";
+import { useOngoingJobDetails } from "../hooks/useMyJobs";
+import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
+import { EscrowStatus } from "@/types/marketplace";
 
 export function OngoingJobDetails() {
+    const { id } = useParams();
+    const { data: session } = useSession();
+    const { data: escrow, isLoading, error } = useOngoingJobDetails(id as string);
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
+                <Loader2 className="w-10 h-10 text-[#C69C2E] animate-spin" />
+                <p className="mt-4 text-gray-500 font-medium">Loading job details...</p>
+            </div>
+        );
+    }
+
+    if (error || !escrow) {
+        return (
+            <div className="p-6 text-center min-h-[60vh] flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Error loading job</h2>
+                <p className="text-gray-500 mt-2">The job details could not be retrieved. It might have been deleted or you don't have access.</p>
+                <Link href="/dashboard/my-jobs" className="mt-6 text-[#C69C2E] font-bold hover:underline">
+                    Back to My Jobs
+                </Link>
+            </div>
+        );
+    }
+
+    const service = escrow.price_negotiation?.services;
+    const isProvider = session?.user?.id === escrow.payee_wallet?.user_id;
+    
+    const otherUser = isProvider ? escrow.price_negotiation?.initiator : escrow.price_negotiation?.receiver;
+    
+    const statusSteps = [
+        { label: "Job Created", icon: <FileText className="w-4 h-4" />, completed: true, date: escrow.created_at },
+        { label: "Payment Held", icon: <Wallet className="w-4 h-4" />, completed: escrow.status === EscrowStatus.held || escrow.status === EscrowStatus.released, date: escrow.created_at },
+        { label: "Work Submitted", icon: <Clock className="w-4 h-4" />, completed: (escrow.submissions?.length || 0) > 0 || escrow.status === EscrowStatus.released, date: escrow.submissions?.[0]?.created_at },
+        { label: "Job Completed", icon: <CheckCircle2 className="w-4 h-4" />, completed: escrow.status === EscrowStatus.released, date: escrow.status === EscrowStatus.released ? escrow.updated_at : null },
+    ];
+
     return (
         <div className="p-4 md:p-6 max-w-6xl mx-auto">
             {/* Header */}
@@ -15,7 +61,16 @@ export function OngoingJobDetails() {
                 >
                     <ArrowLeft className="w-5 h-5 text-gray-600" />
                 </Link>
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">Services Details</h1>
+                <div>
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">Job Details</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            isProvider ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                        }`}>
+                            {isProvider ? "Service Provider" : "Client"}
+                        </span>
+                    </div>
+                </div>
                 <div className="ml-auto text-xs md:text-sm text-gray-500 hidden md:block">
                     <Link href="/dashboard" className="hover:text-gray-900">Home</Link>
                     <span className="mx-2">/</span>
@@ -30,43 +85,64 @@ export function OngoingJobDetails() {
                 <div className="xl:col-span-2 space-y-6 md:space-y-8">
                     <div className="bg-white rounded-2xl p-4 border border-gray-100">
                         <div className="relative h-[250px] md:h-[400px] rounded-xl overflow-hidden mb-6">
-                            <img
-                                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop"
-                                alt="Content Creation"
+                            <FallbackImage
+                                src={getBackendImageUrl(service?.image || "")}
+                                alt={service?.name || "Job Image"}
                                 className="w-full h-full object-cover"
                             />
                         </div>
 
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
                             <div className="flex items-center gap-2">
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Content Creation</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">{service?.name}</h2>
                                 <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">
-                                    Hybrid
+                                    {service?.type}
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-gray-400 line-through text-base md:text-lg">₦90,000</span>
-                                <span className="text-xl md:text-2xl font-bold text-gray-900">₦85,000</span>
+                                <span className="text-xl md:text-2xl font-bold text-gray-900">₦{(escrow.amount_cents / 100).toLocaleString()}</span>
                             </div>
                         </div>
 
-                        <p className="text-sm md:text-base text-gray-500 leading-relaxed mb-6">
-                            Fermentum egestas a nec sit scelerisque lobortis aenean feugiat tellus. Aliquam ut auctor morbi sit risus ultrices. Tristique venenatis ornare leo purus egestas. Sodales ut mi id aliquet laoreet. Enim malesuada ac leo eu commodo a pharetra.
-                        </p>
-
-                        <div className="space-y-4">
-                            <h3 className="text-base md:text-lg font-bold text-gray-900">About the Job:</h3>
+                        <div className="space-y-4 mb-6">
+                            <h3 className="text-base md:text-lg font-bold text-gray-900">Job Description:</h3>
                             <p className="text-sm md:text-base text-gray-500 leading-relaxed">
-                                Fermentum egestas a nec sit scelerisque lobortis aenean feugiat tellus. Aliquam ut auctor morbi sit risus ultrices. Tristique venenatis ornare leo purus egestas. Sodales ut mi id aliquet laoreet. Enim malesuada ac leo eu commodo a pharetra. Vita
+                                {service?.description}
                             </p>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                            <p className="text-sm text-gray-500">
-                                Status: <span className="text-[#C69C2E] font-medium">Pending</span>
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Applied: <span className="text-gray-900 font-medium">2023-11-25</span>
+                        {/* Timeline */}
+                        <div className="mt-8 pt-8 border-t border-gray-100">
+                            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-6">Job Timeline</h3>
+                            <div className="relative flex flex-col gap-6">
+                                {statusSteps.map((step, index) => (
+                                    <div key={index} className="flex gap-4 relative">
+                                        {index !== statusSteps.length - 1 && (
+                                            <div className={`absolute left-4 top-8 w-0.5 h-full -ml-px ${step.completed && statusSteps[index+1].completed ? "bg-green-500" : "bg-gray-100"}`} />
+                                        )}
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                                            step.completed ? "bg-green-500 text-white" : "bg-gray-100 text-gray-400"
+                                        }`}>
+                                            {step.completed ? <CheckCircle2 className="w-5 h-5" /> : step.icon}
+                                        </div>
+                                        <div>
+                                            <p className={`font-bold text-sm md:text-base ${step.completed ? "text-gray-900" : "text-gray-400"}`}>
+                                                {step.label}
+                                            </p>
+                                            {step.date && (
+                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                    {new Date(step.date).toLocaleString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                            <p className="text-sm text-gray-500 uppercase tracking-wider font-bold">
+                                Current Status: <span className="text-[#C69C2E]">{escrow.status.toUpperCase()}</span>
                             </p>
                         </div>
                     </div>
@@ -75,74 +151,45 @@ export function OngoingJobDetails() {
                 {/* Right Column - Contact Info */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-100">
+                        <h4 className="font-bold text-gray-900 mb-6 uppercase tracking-wider text-xs">
+                            {isProvider ? "Client Information" : "Service Provider"}
+                        </h4>
+                        
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-full overflow-hidden">
-                                <img
-                                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
-                                    alt="Emeka Chinonso"
-                                    className="w-full h-full object-cover"
-                                />
+                            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-50 flex items-center justify-center">
+                                {otherUser?.username ? (
+                                    <span className="text-[#C69C2E] font-bold text-lg">{otherUser.username.charAt(0).toUpperCase()}</span>
+                                ) : (
+                                    <Globe className="w-6 h-6 text-gray-300" />
+                                )}
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900">Emeka Chinonso</h3>
-                                <p className="text-xs text-gray-500">Senior Content Editor</p>
-                                <div className="flex text-[#C69C2E] text-xs mt-0.5">
-                                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                                    <span className="text-gray-400 ml-1">(4.5)</span>
-                                </div>
+                                <h3 className="font-bold text-gray-900">{otherUser?.username || "Anonymous User"}</h3>
+                                <p className="text-xs text-gray-500">{otherUser?.email}</p>
                             </div>
                         </div>
 
-                        <h4 className="font-bold text-gray-900 mb-4">Contact Information</h4>
-
                         <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-[#C69C2E]/10 flex items-center justify-center shrink-0">
-                                    <Globe className="w-4 h-4 text-[#C69C2E]" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase">WEBSITE</p>
-                                    <p className="text-sm text-gray-900 font-medium break-all">www.catherinemarsh.com</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-[#C69C2E]/10 flex items-center justify-center shrink-0">
-                                    <Phone className="w-4 h-4 text-[#C69C2E]" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase">PHONE</p>
-                                    <p className="text-sm text-gray-900 font-medium">+1-202-555-0135</p>
-                                </div>
-                            </div>
-
                             <div className="flex items-start gap-3">
                                 <div className="w-8 h-8 rounded-full bg-[#C69C2E]/10 flex items-center justify-center shrink-0">
                                     <Mail className="w-4 h-4 text-[#C69C2E]" />
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 uppercase">EMAIL ADDRESS</p>
-                                    <p className="text-sm text-gray-900 font-medium break-all">catherinemarsh@gmail.com</p>
+                                    <p className="text-sm text-gray-900 font-medium break-all">{otherUser?.email}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-8">
-                            <h4 className="font-bold text-gray-900 mb-4">Social</h4>
-                            <div className="flex gap-3">
-                                <a href="#" className="w-8 h-8 rounded bg-[#C69C2E]/10 flex items-center justify-center hover:bg-[#C69C2E] hover:text-white transition-colors text-[#C69C2E]">
-                                    <Facebook className="w-4 h-4" />
-                                </a>
-                                <a href="#" className="w-8 h-8 rounded bg-[#C69C2E]/10 flex items-center justify-center hover:bg-[#C69C2E] hover:text-white transition-colors text-[#C69C2E]">
-                                    <Twitter className="w-4 h-4" />
-                                </a>
-                                <a href="#" className="w-8 h-8 rounded bg-[#C69C2E]/10 flex items-center justify-center hover:bg-[#C69C2E] hover:text-white transition-colors text-[#C69C2E]">
-                                    <Instagram className="w-4 h-4" />
-                                </a>
-                                <a href="#" className="w-8 h-8 rounded bg-[#C69C2E]/10 flex items-center justify-center hover:bg-[#C69C2E] hover:text-white transition-colors text-[#C69C2E]">
-                                    <Youtube className="w-4 h-4" />
-                                </a>
-                            </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                            <Link href={`/dashboard/marketplace/service/${service?.id}`}>
+                                <button className="w-full bg-[#C69C2E] text-white py-3 rounded-xl font-bold hover:bg-[#b08b29] transition-colors mb-3">
+                                    View Service Original
+                                </button>
+                            </Link>
+                            <button className="w-full bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors">
+                                Message {otherUser?.username || "User"}
+                            </button>
                         </div>
                     </div>
                 </div>
