@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function HeroSection() {
     return (
@@ -10,7 +11,7 @@ export function HeroSection() {
 
                     {/* Background Image & Overlay Container */}
                     <div className="absolute inset-0 w-full h-full">
-                        <img
+                        <FallbackImage
                             src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"
                             alt="Workspace"
                             className="absolute inset-0 w-full h-full object-cover object-center"

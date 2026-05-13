@@ -1,5 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listServices, createService, updateService, deleteService } from "../actions";
+import { listServices, createService, updateService, deleteService, listWorkSubmissions, getWorkSubmission } from "../actions";
+import { listMyEscrows, getEscrow } from "../../escrow/actions";
+
+// ... existing hooks ...
+
+export function useWorkSubmissionDetails(id: string) {
+    return useQuery({
+        queryKey: ["work-submission", id],
+        queryFn: async () => {
+            const result = await getWorkSubmission(id);
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return result.data;
+        },
+        enabled: !!id,
+    });
+}
 
 export function useMyServices() {
     return useQuery({
@@ -11,6 +28,46 @@ export function useMyServices() {
             }
             return result.data;
         },
+    });
+}
+
+export function useMyOngoingJobs() {
+    return useQuery({
+        queryKey: ["my-ongoing-jobs"],
+        queryFn: async () => {
+            const result = await listMyEscrows();
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return result.data;
+        },
+    });
+}
+
+export function useMySubmittedJobs() {
+    return useQuery({
+        queryKey: ["my-submitted-jobs"],
+        queryFn: async () => {
+            const result = await listWorkSubmissions();
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return result.data;
+        },
+    });
+}
+
+export function useOngoingJobDetails(id: string) {
+    return useQuery({
+        queryKey: ["ongoing-job", id],
+        queryFn: async () => {
+            const result = await getEscrow(id);
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return result.data;
+        },
+        enabled: !!id,
     });
 }
 

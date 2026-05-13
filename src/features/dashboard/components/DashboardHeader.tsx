@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MobileSidebar } from "./MobileSidebar";
 import { useSession } from "next-auth/react";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function DashboardHeader() {
     const { data: session } = useSession();
@@ -29,7 +30,7 @@ export function DashboardHeader() {
 
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
-                        <img
+                        <FallbackImage
                             src={session?.user?.image || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop"}
                             alt={session?.user?.name || "User"}
                             className="w-full h-full object-cover"

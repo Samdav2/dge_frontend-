@@ -34,6 +34,17 @@ export async function getUserPortfolio(): Promise<UserPortfolio | null> {
             return null;
         }
 
+        // Propagate Set-Cookie headers (for refresh_token rotation)
+        const setCookie = response.headers.get("set-cookie");
+        if (setCookie) {
+            const { cookies } = await import("next/headers");
+            const cookieStore = await cookies();
+            // Simple propagation — in production use a proper cookie parser
+            const [nameValue] = setCookie.split(';');
+            const [name, value] = nameValue.split('=');
+            cookieStore.set(name.trim(), value.trim(), { httpOnly: true, secure: true, path: '/' });
+        }
+
         if (!response.ok) {
             console.error("Failed to fetch portfolio:", response.status, await response.text());
             throw new Error("Failed to fetch portfolio");

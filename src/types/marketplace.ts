@@ -74,3 +74,79 @@ export interface ServiceResponseItem {
     portfolio: PortfolioItem[];
     user: User;
 }
+
+export enum EscrowStatus {
+    held = "held",
+    released = "released",
+    refunded = "refunded",
+    disputed = "disputed",
+}
+
+export interface WorkSubmission {
+    id: string;
+    user_id: string;
+    escrow_id: string;
+    service_id: string;
+    text?: string;
+    links?: string[];
+    image_urls?: string[];
+    file_urls?: string[];
+    created_at: string;
+    service?: Service;
+}
+
+export interface Wallet {
+    id: string;
+    user_id: string;
+    wallet_type: string;
+    balance_cents: number;
+    currency: string;
+}
+
+export interface Escrow {
+    id: string;
+    payer_wallet_id: string;
+    payee_wallet_id: string;
+    payment_negotiation_id: string;
+    amount_cents: number;
+    status: EscrowStatus;
+    created_at: string;
+    updated_at: string;
+    price_negotiation?: PriceNegotiation;
+    submissions?: WorkSubmission[];
+    payer_wallet?: Wallet;
+    payee_wallet?: Wallet;
+}
+
+export enum NegotiationStatus {
+    pending = "pending",
+    accepted = "accepted",
+    rejected = "rejected",
+    countered = "countered",
+}
+
+export interface PriceNegotiation {
+    id: string;
+    service_id: string;
+    initiator_id: string;
+    receiver_id: string;
+    negotiation_type: "incoming" | "outgoing";
+    proposed_price_cents: number;
+    message?: string;
+    status: NegotiationStatus;
+    created_at: string;
+    updated_at: string;
+    services?: Service;
+    initiator?: User;
+    receiver?: User;
+}
+
+export interface EscrowDetailResponse {
+    escrow: Escrow;
+    negotiation: PriceNegotiation;
+    service: Service;
+    client: User;
+    provider: User;
+    clientProfile: UserProfile | null;
+    providerProfile: UserProfile | null;
+}

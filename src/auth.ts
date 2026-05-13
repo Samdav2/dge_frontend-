@@ -253,6 +253,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                                 } else {
                                     console.error("Debug: JWT Callback - Token refresh failed:", refreshRes.status);
                                     token.backendToken = undefined;
+                                    token.error = "RefreshAccessTokenError";
+                                    cookieStore.set({
+                                        name: 'refresh_token',
+                                        value: '',
+                                        expires: new Date(0),
+                                        path: '/',
+                                    });
                                 }
                             } else {
                                 console.warn("Debug: JWT Callback - No refresh token in cookies.");
@@ -279,6 +286,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
             if (token.role) {
                 (session.user as any).role = token.role;
+            }
+            if (token.error) {
+                (session as any).error = token.error;
             }
             console.log("Debug: Session Callback - session.backendToken after:", !!session.backendToken);
             return session;

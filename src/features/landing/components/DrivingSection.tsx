@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function DrivingSection() {
     return (
@@ -8,7 +9,7 @@ export function DrivingSection() {
                 {/* Banner */}
                 <div className="relative rounded-[2.5rem] overflow-hidden min-h-[400px] flex items-center justify-center mb-20">
                     <div className="absolute inset-0">
-                        <img
+                        <FallbackImage
                             src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop"
                             alt="Driving"
                             className="w-full h-full object-cover"
@@ -42,7 +43,7 @@ export function DrivingSection() {
                     <div className="flex flex-col md:flex-row items-center gap-12 md:gap-24">
                         <div className="flex-1">
                             <div className="rounded-3xl overflow-hidden shadow-lg">
-                                <img
+                                <FallbackImage
                                     src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop"
                                     alt="Drive and earn"
                                     className="w-full h-auto object-cover aspect-[4/3]"
@@ -69,7 +70,7 @@ export function DrivingSection() {
                         </div>
                         <div className="flex-1 order-1 md:order-2">
                             <div className="rounded-3xl overflow-hidden shadow-lg">
-                                <img
+                                <FallbackImage
                                     src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2032&auto=format&fit=crop"
                                     alt="Flexible schedule"
                                     className="w-full h-auto object-cover aspect-[4/3]"

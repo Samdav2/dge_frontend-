@@ -1,33 +1,26 @@
 "use client";
 
 import React from "react";
-import { Briefcase } from "lucide-react";
+import Link from "next/link";
+import { Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OngoingJobCard } from "./OngoingJobCard";
-
-// Mock data for ongoing jobs
-const MOCK_ONGOING_JOBS = [
-    {
-        id: "1",
-        title: "Digital Marketing",
-        description: "Fermentum egestas a nec sit scelerisque lobortis aenean feugiat tellus. Aliquam ut auctor morbi sit risus ultrices.",
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
-        time: "Ongoing",
-        status: "2023-11-25",
-    },
-    {
-        id: "2",
-        title: "Digital Marketing",
-        description: "Fermentum egestas a nec sit scelerisque lobortis aenean feugiat tellus. Aliquam ut auctor morbi sit risus ultrices.",
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
-        time: "Ongoing",
-        status: "2023-11-25",
-    },
-];
+import { useMyOngoingJobs } from "../hooks/useMyJobs";
+import { Escrow } from "@/types/marketplace";
 
 export function OngoingJobsTab() {
-    // Toggle this to test empty state
-    const hasJobs = true;
+    const { data: escrows, isLoading, error } = useMyOngoingJobs();
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl">
+                <Loader2 className="w-10 h-10 text-[#C69C2E] animate-spin" />
+                <p className="mt-4 text-gray-500 font-medium text-sm md:text-base">Loading ongoing jobs...</p>
+            </div>
+        );
+    }
+
+    const hasJobs = escrows && escrows.length > 0;
 
     if (!hasJobs) {
         return (
@@ -44,28 +37,34 @@ export function OngoingJobsTab() {
                     You have no ongoing job yet
                 </p>
 
-                <Button
-                    className="bg-white text-[#C69C2E] border border-[#C69C2E] hover:bg-[#C69C2E] hover:text-white transition-colors px-8 py-2 h-auto"
-                >
-                    + Apply Job
-                </Button>
+                <Link href="/dashboard/marketplace" passHref>
+                    <Button
+                        asChild
+                        className="bg-white text-[#C69C2E] border border-[#C69C2E] hover:bg-[#C69C2E] hover:text-white transition-colors px-8 py-2 h-auto"
+                    >
+                        <span>Find a Job</span>
+                    </Button>
+                </Link>
             </div>
         );
     }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            {MOCK_ONGOING_JOBS.map((job) => (
-                <OngoingJobCard
-                    key={job.id}
-                    id={job.id}
-                    title={job.title}
-                    description={job.description}
-                    image={job.image}
-                    time={job.time}
-                    status={job.status}
-                />
-            ))}
+            {escrows.map((escrow: Escrow) => {
+                const service = escrow.price_negotiation?.services;
+                return (
+                    <OngoingJobCard
+                        key={escrow.id}
+                        id={escrow.id}
+                        title={service?.name || "Job Title"}
+                        description={service?.description || "No description available"}
+                        image={service?.image || ""}
+                        time={new Date(escrow.created_at).toLocaleDateString()}
+                        status={escrow.status.toUpperCase()}
+                    />
+                );
+            })}
         </div>
     );
 }

@@ -9,6 +9,7 @@ import { SuccessModal } from "./SuccessModal";
 import { createNegotiation } from "@/features/negotiation/actions";
 import { getBackendImageUrl } from "@/lib/imageUtils";
 import { Loader2 } from "lucide-react";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface ServiceDetailsProps {
     service: {
@@ -116,7 +117,7 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
                     {/* Image Card */}
                     <div className="bg-white rounded-3xl p-4 border border-gray-100">
                         <div className="relative h-64 sm:h-[400px] w-full rounded-2xl overflow-hidden mb-6">
-                            <img
+                            <FallbackImage
                                 src={getBackendImageUrl(service.image)}
                                 alt={service.title}
                                 className="w-full h-full object-cover"
@@ -196,7 +197,7 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
                     <div className="bg-white rounded-3xl p-6 border border-gray-100">
                         <div className="flex items-start gap-4 mb-6">
                             <div className="w-16 h-16 rounded-full overflow-hidden shrink-0">
-                                <img src={getBackendImageUrl(service.author.image)} alt={service.author.name} className="w-full h-full object-cover" />
+                                <FallbackImage src={getBackendImageUrl(service.author.image)} alt={service.author.name} className="w-full h-full object-cover" />
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900 text-lg">{service.author.name}</h3>

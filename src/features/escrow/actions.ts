@@ -112,7 +112,7 @@ export async function getEscrow(escrowId: string) {
 }
 
 // Release Escrow
-export async function releaseEscrow(escrowId: string) {
+export async function releaseEscrow(escrowId: string, payload?: { rating?: number; review_comment?: string; direct_message?: string }) {
     const headers = await getAuthHeaders();
     if (!headers) {
         return { success: false, error: "Unauthorized" };
@@ -121,7 +121,11 @@ export async function releaseEscrow(escrowId: string) {
     try {
         const response = await fetch(`${apiUrl}/escrow/escrows/${escrowId}/release`, {
             method: "POST",
-            headers,
+            headers: {
+                ...headers,
+                "Content-Type": "application/json",
+            },
+            body: payload ? JSON.stringify(payload) : undefined,
         });
 
         if (!response.ok) {
@@ -164,7 +168,7 @@ export async function refundEscrow(escrowId: string) {
 }
 
 // Dispute Escrow
-export async function disputeEscrow(escrowId: string) {
+export async function disputeEscrow(escrowId: string, payload?: { direct_message?: string }) {
     const headers = await getAuthHeaders();
     if (!headers) {
         return { success: false, error: "Unauthorized" };
@@ -173,7 +177,11 @@ export async function disputeEscrow(escrowId: string) {
     try {
         const response = await fetch(`${apiUrl}/escrow/escrows/${escrowId}/dispute`, {
             method: "POST",
-            headers,
+            headers: {
+                ...headers,
+                "Content-Type": "application/json",
+            },
+            body: payload ? JSON.stringify(payload) : undefined,
         });
 
         if (!response.ok) {

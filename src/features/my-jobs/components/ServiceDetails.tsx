@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CreateServiceModal } from "./CreateServiceModal";
 import { DeleteServiceModal } from "./DeleteServiceModal";
 import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 import { useRouter } from "next/navigation";
 import { useDeleteService } from "../hooks/useMyJobs";
 
@@ -74,7 +75,7 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
                 <div className="xl:col-span-2 space-y-6 md:space-y-8">
                     <div className="bg-white rounded-2xl p-4 border border-gray-100">
                         <div className="relative h-[250px] md:h-[400px] rounded-xl overflow-hidden mb-6">
-                            <img
+                            <FallbackImage
                                 src={getBackendImageUrl(service.image)}
                                 alt={service.name}
                                 className="w-full h-full object-cover"

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 export function AboutUsSection() {
     return (
@@ -14,7 +15,7 @@ export function AboutUsSection() {
                     </div>
                     <div className="flex-1">
                         <div className="rounded-2xl overflow-hidden shadow-xl">
-                            <img
+                            <FallbackImage
                                 src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"
                                 alt="About Us"
                                 className="w-full h-auto object-cover"

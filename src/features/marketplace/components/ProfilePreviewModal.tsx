@@ -29,6 +29,8 @@ interface ProfilePreviewModalProps {
 
 import { Globe, Facebook, Youtube, Twitter, Instagram } from "lucide-react";
 
+import FallbackImage from "@/components/ui/FallbackImage";
+
 export function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewModalProps) {
     // Mock data if not provided
     const mockData = {
@@ -81,7 +83,7 @@ export function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewMod
                     <div className="flex flex-col items-center text-center mb-8">
                         <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-100 mb-4 border-4 border-white shadow-sm">
                             {displayUser.image ? (
-                                <img src={getBackendImageUrl(displayUser.image)} alt={displayUser.name} className="w-full h-full object-cover" />
+                                <FallbackImage src={getBackendImageUrl(displayUser.image)} alt={displayUser.name} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-blue-500">
                                     {displayUser.name.charAt(0).toUpperCase()}

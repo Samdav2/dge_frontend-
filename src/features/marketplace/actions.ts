@@ -27,6 +27,8 @@ export interface ServiceFilters {
     status?: string;
     type?: string;
     onlyMine?: boolean;
+    search?: string;
+    categoryId?: string;
 }
 
 // List Services
@@ -38,8 +40,10 @@ export async function listServices(filters: ServiceFilters = {}) {
 
     const params = new URLSearchParams();
     if (filters.status) params.append("status", filters.status);
-    if (filters.type) params.append("type", filters.type);
+    if (filters.type && filters.type !== "all") params.append("type", filters.type);
     if (filters.onlyMine !== undefined) params.append("only_mine", String(filters.onlyMine));
+    if (filters.search) params.append("search", filters.search);
+    if (filters.categoryId && filters.categoryId !== "all") params.append("category_id", filters.categoryId);
 
     try {
         const response = await fetch(`${apiUrl}/services/services/?${params.toString()}`, {
