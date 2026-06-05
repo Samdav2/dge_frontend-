@@ -1,13 +1,14 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;

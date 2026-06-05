@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,17 +9,50 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Image as ImageIcon, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { updateProfile, getProfile } from "../actions";
 import FallbackImage from "@/components/ui/FallbackImage";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+function SuccessModal({
+    open,
+    onClose,
+    title,
+    message,
+}: {
+    open: boolean;
+    onClose: () => void;
+    title: string;
+    message: string;
+}) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <div className="p-8 text-center">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                        <CheckCircle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+                    <p className="text-sm text-gray-500 mb-8">{message}</p>
+                    <button
+                        onClick={onClose}
+                        className="w-full py-3.5 rounded-xl bg-[#C69C2E] text-white text-sm font-bold hover:bg-[#b08b29] transition-colors shadow-lg shadow-[#C69C2E]/20"
+                    >
+                        Great!
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function PersonalSettings() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,35 +72,36 @@ export function PersonalSettings() {
         postal_code: "",
     });
 
-    useEffect(() => {
-        async function fetchProfile() {
-            const res = await getProfile();
-            if (res.success && res.data) {
-                const profile = res.data;
-                setFormData({
-                    bio: profile.bio || "",
-                    first_name: profile.first_name || "",
-                    last_name: profile.last_name || "",
-                    phone: profile.phone || "",
-                    date_of_birth: profile.date_of_birth || "",
-                    gender: profile.gender || "",
-                    country: profile.country || "",
-                    state: profile.state || "",
-                    city: profile.city || "",
-                    address_line1: profile.address_line1 || "",
-                    address_line2: profile.address_line2 || "",
-                    postal_code: profile.postal_code || "",
-                });
+    const fetchProfile = async () => {
+        const res = await getProfile();
+        if (res.success && res.data) {
+            const profile = res.data;
+            setFormData({
+                bio: profile.bio || "",
+                first_name: profile.first_name || "",
+                last_name: profile.last_name || "",
+                phone: profile.phone || "",
+                date_of_birth: profile.date_of_birth || "",
+                gender: profile.gender || "",
+                country: profile.country || "",
+                state: profile.state || "",
+                city: profile.city || "",
+                address_line1: profile.address_line1 || "",
+                address_line2: profile.address_line2 || "",
+                postal_code: profile.postal_code || "",
+            });
 
-                if (profile.avatar_url) {
-                    let previewUrl = profile.avatar_url;
-                    if (!previewUrl.startsWith("http")) {
-                        previewUrl = `${BASE_URL}${previewUrl}`;
-                    }
-                    setAvatarPreview(previewUrl);
+            if (profile.avatar_url) {
+                let previewUrl = profile.avatar_url;
+                if (!previewUrl.startsWith("http")) {
+                    previewUrl = `${BASE_URL}${previewUrl}`;
                 }
+                setAvatarPreview(previewUrl);
             }
         }
+    };
+
+    useEffect(() => {
         fetchProfile();
     }, []);
 
@@ -101,7 +133,7 @@ export function PersonalSettings() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        setSuccess(false);
+        setShowSuccess(false);
         setIsSubmitting(true);
 
         try {
@@ -118,7 +150,8 @@ export function PersonalSettings() {
             const result = await updateProfile(submitData);
 
             if (result.success) {
-                setSuccess(true);
+                setShowSuccess(true);
+                await fetchProfile(); // Refresh to get the latest avatar URL etc.
             } else {
                 setError(result.error || "Failed to update profile");
             }
@@ -161,14 +194,9 @@ export function PersonalSettings() {
             </div>
 
             {error && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-500 text-sm text-center">
+                <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
                     {error}
-                </div>
-            )}
-
-            {success && (
-                <div className="p-3 rounded-lg bg-green-50 text-green-600 text-sm text-center">
-                    Profile updated successfully!
                 </div>
             )}
 
@@ -331,6 +359,13 @@ export function PersonalSettings() {
                     )}
                 </Button>
             </div>
+
+            <SuccessModal
+                open={showSuccess}
+                onClose={() => setShowSuccess(false)}
+                title="Profile Updated!"
+                message="Your personal information has been successfully saved."
+            />
         </form>
     );
 }

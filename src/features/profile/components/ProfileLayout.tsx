@@ -3,10 +3,11 @@
 import React from "react";
 import { PersonalSettings } from "./PersonalSettings";
 import { PortfolioSettings } from "./PortfolioSettings";
-import { ChevronRight } from "lucide-react";
+import { KYCSettings } from "./KYCSettings";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 
 export function ProfileLayout() {
-    const [activeTab, setActiveTab] = React.useState<'personal' | 'portfolio'>('personal');
+    const [activeTab, setActiveTab] = React.useState<'personal' | 'portfolio' | 'kyc'>('personal');
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-[calc(100vh-100px)] flex flex-col relative">
@@ -51,11 +52,31 @@ export function ProfileLayout() {
                         <ChevronRight className={`w-4 h-4 transition-colors ${activeTab === 'portfolio' ? 'text-[#C69C2E]' : 'text-gray-400 group-hover:text-[#C69C2E]'
                             }`} />
                     </button>
+
+                    <button
+                        onClick={() => setActiveTab('kyc')}
+                        className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${activeTab === 'kyc'
+                            ? 'bg-[#F5E6C8] border-[#C69C2E] ring-1 ring-[#C69C2E]'
+                            : 'bg-white border-gray-100 hover:border-[#C69C2E]/50'
+                            }`}
+                    >
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                KYC Verification
+                                <ShieldCheck className="w-4 h-4 text-green-600" />
+                            </h3>
+                            <p className="text-xs text-gray-500">Verify your identity documents.</p>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 transition-colors ${activeTab === 'kyc' ? 'text-[#C69C2E]' : 'text-gray-400 group-hover:text-[#C69C2E]'
+                            }`} />
+                    </button>
                 </div>
 
                 {/* Main Content Area */}
                 <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-6 lg:p-8">
-                    {activeTab === 'personal' ? <PersonalSettings /> : <PortfolioSettings />}
+                    {activeTab === 'personal' && <PersonalSettings />}
+                    {activeTab === 'portfolio' && <PortfolioSettings />}
+                    {activeTab === 'kyc' && <KYCSettings />}
                 </div>
             </div>
         </div>

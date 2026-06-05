@@ -12,11 +12,13 @@ import {
     X,
     Plus,
     CheckCircle2,
-    XCircle,
     AlertCircle,
     Clock,
+    Trash2,
+    AlertTriangle,
 } from "lucide-react";
-import Image from "next/image";
+import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 import { useMyPostedJobs, useJobBids } from "@/features/posted-jobs/hooks/usePostedJobs";
 import { PostedJob, PostedJobBid, cancelPostedJob, acceptBid, rejectBid } from "@/features/posted-jobs/actions";
 import { CreatePostedJobModal } from "@/features/posted-jobs/components/CreatePostedJobModal";
@@ -88,7 +90,7 @@ function JobBidCard({
                         onClick={onReject}
                         className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-xl transition-colors border border-red-200"
                     >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
+                        <X className="w-3.5 h-3.5" /> Reject
                     </button>
                 </div>
             )}
@@ -136,12 +138,10 @@ function JobDetailPanel({
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             {/* Header */}
             <div className="relative h-36">
-                <Image
-                    src={job.image || DGE_LOGO}
+                <FallbackImage
+                    src={getBackendImageUrl(job.image)}
                     alt={job.title}
-                    fill
-                    className="object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = DGE_LOGO; }}
+                    className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                 <button
@@ -221,14 +221,53 @@ function JobDetailPanel({
     );
 }
 
+function ConfirmModal({
+    open,
+    onClose,
+    onConfirm,
+    title,
+    message,
+    isLoading,
+}: {
+    open: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+    isLoading?: boolean;
+}) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <div className="p-6 text-center">
+                    <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <AlertTriangle className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{message}</p>
+                    <div className="flex gap-3">
+                        <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+                        <button onClick={onConfirm} disabled={isLoading} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-2">
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function PostedJobCard({
     job,
     isSelected,
     onClick,
+    onCancel,
 }: {
     job: PostedJob;
     isSelected: boolean;
     onClick: () => void;
+    onCancel?: (e: React.MouseEvent) => void;
 }) {
     const minPrice = (job.min_price_cents / 100).toLocaleString();
     const maxPrice = (job.max_price_cents / 100).toLocaleString();
@@ -244,12 +283,10 @@ function PostedJobCard({
             <div className="flex items-stretch gap-0">
                 {/* Image */}
                 <div className="relative w-20 h-20 shrink-0">
-                    <Image
-                        src={job.image || DGE_LOGO}
+                    <FallbackImage
+                        src={getBackendImageUrl(job.image)}
                         alt={job.title}
-                        fill
-                        className="object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = DGE_LOGO; }}
+                        className="w-full h-full object-cover"
                     />
                 </div>
 
@@ -260,9 +297,20 @@ function PostedJobCard({
                             <p className="font-semibold text-sm text-gray-900 line-clamp-1">{job.title}</p>
                             <p className="text-[11px] text-gray-400 mt-0.5">{job.category?.name ?? "General"}</p>
                         </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize shrink-0 ${STATUS_STYLES[job.status]}`}>
-                            {job.status}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[job.status]}`}>
+                                {job.status}
+                            </span>
+                            {onCancel && job.status === "open" && (
+                                <button
+                                    onClick={onCancel}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    title="Cancel Job"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center justify-between mt-2">
                         <span className="text-xs font-bold text-[#C69C2E]">${minPrice} – ${maxPrice}</span>
@@ -287,15 +335,17 @@ export function PostedJobsTab() {
     const [selectedJob, setSelectedJob] = useState<PostedJob | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [cancellingId, setCancellingId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-    const handleCancel = async (jobId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm("Cancel this job? This action cannot be undone.")) return;
+    const handleCancel = async () => {
+        if (!confirmDeleteId) return;
+        const jobId = confirmDeleteId;
         setCancellingId(jobId);
         await cancelPostedJob(jobId);
         qc.invalidateQueries({ queryKey: ["posted_jobs"] });
         if (selectedJob?.id === jobId) setSelectedJob(null);
         setCancellingId(null);
+        setConfirmDeleteId(null);
     };
 
     return (
@@ -344,15 +394,11 @@ export function PostedJobsTab() {
                                     job={job}
                                     isSelected={selectedJob?.id === job.id}
                                     onClick={() => setSelectedJob(job)}
+                                    onCancel={(e) => {
+                                        e.stopPropagation();
+                                        setConfirmDeleteId(job.id);
+                                    }}
                                 />
-                                {job.status === "open" && (
-                                    <button
-                                        onClick={(e) => handleCancel(job.id, e)}
-                                        className="absolute top-2 right-7 text-[10px] text-red-400 hover:text-red-600 font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                )}
                             </div>
                         ))}
                     </div>
@@ -375,6 +421,15 @@ export function PostedJobsTab() {
             )}
 
             <CreatePostedJobModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+
+            <ConfirmModal
+                open={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={handleCancel}
+                title="Cancel Job"
+                message="Are you sure you want to cancel this job? This action cannot be undone."
+                isLoading={!!cancellingId}
+            />
         </div>
     );
 }

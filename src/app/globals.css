@@ -51,7 +51,190 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Leaflet Map Fixes */
+/* ========================================================
+   FUTURISTIC ANIMATIONS & UTILITIES
+   ======================================================== */
+
+/* Floating animation for icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Gold pulsing glow */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(198, 156, 46, 0.3), 0 0 20px rgba(198, 156, 46, 0.1); }
+  50% { box-shadow: 0 0 16px rgba(198, 156, 46, 0.5), 0 0 40px rgba(198, 156, 46, 0.2); }
+}
+
+/* SVG path draw animation */
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Orbital rotation for ecosystem nodes */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit-radius, 120px)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--orbit-radius, 120px)) rotate(-360deg); }
+}
+
+@keyframes orbit-reverse {
+  from { transform: rotate(360deg) translateX(var(--orbit-radius, 180px)) rotate(-360deg); }
+  to { transform: rotate(0deg) translateX(var(--orbit-radius, 180px)) rotate(0deg); }
+}
+
+/* Fade in up for scroll reveals */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scale in */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Ring pulse for driver search */
+@keyframes ringPulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Count up flash */
+@keyframes countReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Road line animation */
+@keyframes roadMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 -100px; }
+}
+
+/* Subtle shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Particle float */
+@keyframes particleFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  25% { transform: translate(10px, -20px) scale(1.2); opacity: 0.7; }
+  50% { transform: translate(-5px, -35px) scale(0.8); opacity: 0.3; }
+  75% { transform: translate(15px, -15px) scale(1.1); opacity: 0.6; }
+}
+
+/* Card cycle animation */
+@keyframes cardCycle {
+  0%, 30% { opacity: 1; transform: translateY(0) scale(1); }
+  33%, 63% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  66%, 96% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Glassmorphism utility */
+.glassmorphic {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glassmorphic-light {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Gold glow effect */
+.glow-gold {
+  box-shadow: 0 0 12px rgba(198, 156, 46, 0.3), 0 0 30px rgba(198, 156, 46, 0.1);
+}
+
+.glow-gold-strong {
+  box-shadow: 0 0 20px rgba(198, 156, 46, 0.5), 0 0 50px rgba(198, 156, 46, 0.2), 0 0 80px rgba(198, 156, 46, 0.1);
+}
+
+/* Subtle grid pattern for dark sections */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(198, 156, 46, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(198, 156, 46, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Dot pattern */
+.dot-pattern {
+  background-image: radial-gradient(rgba(198, 156, 46, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Gradient text utility */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #C69C2E 0%, #E5B84D 50%, #C69C2E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Shimmer text */
+.text-shimmer {
+  background: linear-gradient(90deg, #C69C2E 0%, #E5B84D 25%, #F5D78E 50%, #E5B84D 75%, #C69C2E 100%);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+/* Animate on scroll utility — elements start hidden */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Tilt card hover effect */
+.tilt-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tilt-card:hover {
+  transform: translateY(-4px) perspective(1000px) rotateX(2deg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* ========================================================
+   LEAFLET MAP FIXES (preserved)
+   ======================================================== */
+
 .leaflet-container {
   width: 100% !important;
   height: 100% !important;

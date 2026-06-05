@@ -13,9 +13,10 @@ import {
     AlertCircle,
     Briefcase,
 } from "lucide-react";
-import Image from "next/image";
 import { PostedJob } from "@/features/posted-jobs/actions";
 import { BidOnJobModal } from "./BidOnJobModal";
+import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 const DGE_LOGO = "/DGE logo.png";
 
@@ -65,13 +66,11 @@ export function PostedJobDetailsModal({ job, open, onClose }: Props) {
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header Image */}
-                    <div className="relative w-full h-48">
-                        <Image
-                            src={job.image || DGE_LOGO}
+                    <div className="relative w-full h-48 bg-gray-100">
+                        <FallbackImage
+                            src={getBackendImageUrl(job.image)}
                             alt={job.title}
-                            fill
-                            className="object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).src = DGE_LOGO; }}
+                            className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         <button

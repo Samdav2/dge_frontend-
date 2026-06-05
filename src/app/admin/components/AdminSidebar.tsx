@@ -46,6 +46,7 @@ export default function AdminSidebar() {
         { name: "All Negotiations", href: "/admin/negotiations", icon: MessageSquare },
         { name: "Escrows", href: "/admin/escrows", icon: Wallet },
         { name: "Transactions", href: "/admin/transactions", icon: TrendingUp },
+        { name: "Payments", href: "/admin/payments", icon: Wallet },
         { name: "Support", href: "/admin/support", icon: Headset },
     ];
 

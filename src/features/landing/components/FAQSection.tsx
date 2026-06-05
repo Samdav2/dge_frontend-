@@ -11,39 +11,39 @@ export function FAQSection() {
                     <div className="border rounded-lg p-4">
                         <details className="group">
                             <summary className="flex justify-between items-center font-medium cursor-pointer list-none">
-                                <span>What is Pod and how does it work?</span>
+                                <span>How do I book a domestic service?</span>
                                 <span className="transition group-open:rotate-180">
                                     <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                                 </span>
                             </summary>
                             <p className="text-muted-foreground mt-3 group-open:animate-fadeIn">
-                                Pod is a powerful cloud deployment platform that allows developers to deploy web applications instantly.
+                                Simply search for the service you need, choose an available professional, and book a time that works for you.
                             </p>
                         </details>
                     </div>
                     <div className="border rounded-lg p-4">
                         <details className="group">
                             <summary className="flex justify-between items-center font-medium cursor-pointer list-none">
-                                <span>Which programming languages and frameworks does Pod support?</span>
+                                <span>Are your service professionals vetted?</span>
                                 <span className="transition group-open:rotate-180">
                                     <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                                 </span>
                             </summary>
                             <p className="text-muted-foreground mt-3 group-open:animate-fadeIn">
-                                We support all major frameworks including Next.js, React, Vue, and more.
+                                Yes, all our professionals undergo a thorough background check and skill verification process before joining the platform.
                             </p>
                         </details>
                     </div>
                     <div className="border rounded-lg p-4">
                         <details className="group">
                             <summary className="flex justify-between items-center font-medium cursor-pointer list-none">
-                                <span>Does Pod provide database management services?</span>
+                                <span>What if I am not satisfied with the service?</span>
                                 <span className="transition group-open:rotate-180">
                                     <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                                 </span>
                             </summary>
                             <p className="text-muted-foreground mt-3 group-open:animate-fadeIn">
-                                Yes, we offer managed database services for PostgreSQL and MySQL.
+                                We offer a satisfaction guarantee. If you're not happy with the work, we'll work with you to make it right or provide a refund.
                             </p>
                         </details>
                     </div>

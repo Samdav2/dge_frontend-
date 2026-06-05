@@ -3,12 +3,14 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/features/landing/components/HeroSection";
 import { CategoriesSection } from "@/features/landing/components/CategoriesSection";
+import { TrendingServicesSection } from "@/features/landing/components/TrendingServicesSection";
 import { AboutUsSection } from "@/features/landing/components/AboutUsSection";
 import { ValuePropsSection } from "@/features/landing/components/ValuePropsSection";
 import { TestimonialsSection } from "@/features/landing/components/TestimonialsSection";
 import { JobListingSection } from "@/features/landing/components/JobListingSection";
-
 import { DrivingSection } from "@/features/landing/components/DrivingSection";
+import { EcosystemSection } from "@/features/landing/components/EcosystemSection";
+import { PlatformVisionSection } from "@/features/landing/components/PlatformVisionSection";
 
 // Dynamic import for FAQ Section to demonstrate lazy loading/code splitting
 const FAQSection = dynamic(() => import('@/features/landing/components/FAQSection').then(mod => mod.FAQSection), {
@@ -23,6 +25,9 @@ export default function Home() {
       <main className="flex-1">
         <HeroSection />
         <CategoriesSection />
+        <TrendingServicesSection />
+        <EcosystemSection />
+        <PlatformVisionSection />
         <AboutUsSection />
         <ValuePropsSection />
         <DrivingSection />

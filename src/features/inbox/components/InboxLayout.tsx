@@ -4,9 +4,16 @@ import React, { useState, useEffect } from "react";
 import { ConversationList } from "./ConversationList";
 import { ChatWindow } from "./ChatWindow";
 import { Conversation } from "../types";
-import { getUserConversations, getParticipants } from "../actions";
+import { getUserConversations, getParticipants, deleteConversation } from "../actions";
 import { useChatContext } from "@/providers/ChatProvider";
 import { useSearchParams } from "next/navigation";
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2, Trash2 } from "lucide-react";
 
 export function InboxLayout() {
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
@@ -14,6 +21,8 @@ export function InboxLayout() {
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const searchParams = useSearchParams();
     const conversationIdParam = searchParams.get("conversationId");
@@ -98,6 +107,36 @@ export function InboxLayout() {
         startOutboundCall(targetUserId, targetUserName, targetUserAvatar, selectedConversation?.id);
     };
 
+    const handleDeleteConversation = (conversationId: string) => {
+        setConversationToDelete(conversationId);
+    };
+
+    const confirmDeleteConversation = async () => {
+        if (!conversationToDelete) return;
+        
+        setIsDeleting(true);
+        try {
+            const result = await deleteConversation(conversationToDelete);
+            if (result.success) {
+                setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
+                if (selectedConversation?.id === conversationToDelete) {
+                    setSelectedConversation(null);
+                    setMobileView("list");
+                }
+                setConversationToDelete(null);
+            } else {
+                setError(result.error || "Failed to delete conversation");
+                setConversationToDelete(null);
+            }
+        } catch (err) {
+            console.error("Delete conversation error:", err);
+            setError("Failed to delete conversation");
+            setConversationToDelete(null);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto h-screen flex flex-col">
             <div className="flex flex-row items-center justify-between mb-6">
@@ -125,6 +164,7 @@ export function InboxLayout() {
                         selectedId={selectedConversation?.id}
                         currentUserId={userId ?? undefined}
                         onChatSelect={handleChatSelect}
+                        onDelete={handleDeleteConversation}
                     />
                 </div>
                 <div className={`lg:col-span-2 h-full min-h-0 ${mobileView === "chat" ? "block" : "hidden lg:block"}`}>
@@ -139,6 +179,50 @@ export function InboxLayout() {
                     />
                 </div>
             </div>
+
+            <Dialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
+                <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-3xl">
+                    <DialogTitle className="sr-only">Delete Conversation</DialogTitle>
+                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                            <Trash2 className="w-10 h-10 text-red-500" />
+                        </div>
+
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            Delete Conversation
+                        </h2>
+
+                        <p className="text-gray-500 mb-8 text-sm">
+                            Are you sure you want to delete this conversation?
+                        </p>
+
+                        <div className="flex gap-4 w-full">
+                            <Button
+                                onClick={confirmDeleteConversation}
+                                disabled={isDeleting}
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white h-12 rounded-xl"
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    "Yes, Delete"
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setConversationToDelete(null)}
+                                disabled={isDeleting}
+                                className="flex-1 border-[#C69C2E] text-[#C69C2E] hover:bg-[#C69C2E] hover:text-white h-12 rounded-xl"
+                            >
+                                No, Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

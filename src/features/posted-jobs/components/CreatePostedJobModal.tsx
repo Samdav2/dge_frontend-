@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "@/features/marketplace/hooks/useMarketplace";
-import { createPostedJob } from "@/features/posted-jobs/actions";
+import { createPostedJob, uploadJobImage } from "@/features/posted-jobs/actions";
+import { getBackendImageUrl } from "@/lib/imageUtils";
 
 interface Props {
     open: boolean;
@@ -30,6 +31,7 @@ export function CreatePostedJobModal({ open, onClose }: Props) {
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
     const [imageUrl, setImageUrl] = useState("");
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -39,6 +41,7 @@ export function CreatePostedJobModal({ open, onClose }: Props) {
     const resetForm = () => {
         setTitle(""); setDescription(""); setCategoryId("");
         setMinPrice(""); setMaxPrice(""); setImageUrl("");
+        setImageFile(null);
         setError(null); setSuccess(false);
     };
 
@@ -57,13 +60,27 @@ export function CreatePostedJobModal({ open, onClose }: Props) {
         setIsSubmitting(true);
         setError(null);
 
+        let finalImageUrl = imageUrl;
+        if (imageFile) {
+            const formData = new FormData();
+            formData.append("file", imageFile);
+            const uploadResult = await uploadJobImage(formData);
+            if (uploadResult.success && uploadResult.url) {
+                finalImageUrl = uploadResult.url;
+            } else {
+                setError(uploadResult.error || "Failed to upload image.");
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
         const result = await createPostedJob({
             title: title.trim(),
             description: description.trim(),
             category_id: categoryId,
             min_price_cents: minCents,
             max_price_cents: maxCents,
-            image: imageUrl.trim() || undefined,
+            image: finalImageUrl.trim() || undefined,
         });
 
         setIsSubmitting(false);
@@ -199,25 +216,54 @@ export function CreatePostedJobModal({ open, onClose }: Props) {
                                 </p>
                             </div>
 
-                            {/* Image URL */}
+                            {/* Image Upload */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     <ImageIcon className="inline w-3.5 h-3.5 mr-1" />
-                                    Cover Image URL <span className="text-gray-400 font-normal">(optional)</span>
+                                    Cover Image <span className="text-gray-400 font-normal">(optional)</span>
                                 </label>
-                                <input
-                                    type="url"
-                                    placeholder="https://example.com/image.jpg"
-                                    value={imageUrl}
-                                    onChange={(e) => setImageUrl(e.target.value)}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C69C2E]/30 bg-gray-50"
-                                />
+                                <div className="space-y-3">
+                                    {imageFile || imageUrl ? (
+                                        <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-gray-100 group">
+                                            <img
+                                                src={imageFile ? URL.createObjectURL(imageFile) : getBackendImageUrl(imageUrl)}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                onClick={() => { setImageFile(null); setImageUrl(""); }}
+                                                className="absolute top-2 right-2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl hover:border-[#C69C2E] hover:bg-gray-50 cursor-pointer transition-all group">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <ImageIcon className="w-8 h-8 text-gray-400 group-hover:text-[#C69C2E] mb-2" />
+                                                <p className="text-xs text-gray-500">
+                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 mt-1">PNG, JPG or WebP (max. 2MB)</p>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) setImageFile(file);
+                                                }}
+                                            />
+                                        </label>
+                                    )}
+                                </div>
                             </div>
 
                             {error && (
                                 <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
                                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                    {error}
+                                    {typeof error === 'string' ? error : JSON.stringify(error)}
                                 </div>
                             )}
 

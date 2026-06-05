@@ -2,12 +2,14 @@
 
 import { auth } from "@/auth"
 
+import { redirect } from "next/navigation";
+
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;
@@ -29,6 +31,9 @@ export interface ServiceFilters {
     onlyMine?: boolean;
     search?: string;
     categoryId?: string;
+    offset?: number;
+    limit?: number;
+    sortBy?: string;
 }
 
 // List Services
@@ -44,6 +49,9 @@ export async function listServices(filters: ServiceFilters = {}) {
     if (filters.onlyMine !== undefined) params.append("only_mine", String(filters.onlyMine));
     if (filters.search) params.append("search", filters.search);
     if (filters.categoryId && filters.categoryId !== "all") params.append("category_id", filters.categoryId);
+    if (filters.offset !== undefined) params.append("offset", String(filters.offset));
+    if (filters.limit !== undefined) params.append("limit", String(filters.limit));
+    if (filters.sortBy) params.append("sort_by", filters.sortBy);
 
     try {
         const response = await fetch(`${apiUrl}/services/services/?${params.toString()}`, {
@@ -86,6 +94,61 @@ export async function getService(serviceId: string) {
         return { success: true, data };
     } catch (error) {
         console.error("Get service error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Get Single Service (Public)
+export async function getPublicService(serviceId: string) {
+    try {
+        const response = await fetch(`${apiUrl}/services/services/${serviceId}`, {
+            method: "GET",
+            headers: {
+                "X-API-KEY": process.env.BACKEND_API_KEY || "",
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch service" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get public service error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// List Services (Public)
+export async function listPublicServices(filters: ServiceFilters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.append("status", filters.status);
+    if (filters.type && filters.type !== "all") params.append("type", filters.type);
+    if (filters.search) params.append("search", filters.search);
+    if (filters.categoryId && filters.categoryId !== "all") params.append("category_id", filters.categoryId);
+    if (filters.offset !== undefined) params.append("offset", String(filters.offset));
+    if (filters.limit !== undefined) params.append("limit", String(filters.limit));
+    if (filters.sortBy) params.append("sort_by", filters.sortBy);
+
+    try {
+        const response = await fetch(`${apiUrl}/services/services/?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "X-API-KEY": process.env.BACKEND_API_KEY || "",
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch services" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("List public services error:", error);
         return { success: false, error: "Network error" };
     }
 }

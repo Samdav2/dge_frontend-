@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AgoraTokenResponse } from "./call-types";
 
@@ -9,8 +10,8 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').rep
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;
@@ -28,8 +29,8 @@ async function getAuthHeaders() {
 // Get backend JWT token (used internally)
 export async function getCallToken(): Promise<string | null> {
     const session = await auth();
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
     let token = session.backendToken;
     if (typeof token === 'string' && token.startsWith('"') && token.endsWith('"')) {

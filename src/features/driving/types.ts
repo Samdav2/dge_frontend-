@@ -63,3 +63,25 @@ export interface DriverNearbyResponse {
     distance_km: number;
     car_name: string;
 }
+
+export type TripStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
+export interface Trip {
+    id: string;
+    rider_id: string;
+    driver_id?: string | null;
+    pickup_lat: number;
+    pickup_lng: number;
+    dropoff_lat: number;
+    dropoff_lng: number;
+    pickup_address?: string | null;
+    dropoff_address?: string | null;
+    distance_km: number;
+    estimated_fare: number;
+    final_fare?: number | null;
+    surge_multiplier: number;
+    status: TripStatus;
+    requested_at: string;
+    accepted_at?: string | null;
+    completed_at?: string | null;
+}

@@ -11,9 +11,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Briefcase, Upload, X, Loader2 } from "lucide-react";
+import { Briefcase, Upload, X, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import Image from "next/image";
-import { getUserPortfolio, createUserPortfolio, updateUserPortfolio, uploadPortfolioMedia } from "@/features/portfolio/actions";
+import { getUserPortfolio, createUserPortfolio, updateUserPortfolio, uploadPortfolioMedia, deletePortfolioMedia } from "@/features/portfolio/actions";
 import { UserPortfolio, PortfolioMedia } from "@/features/portfolio/types";
 import { getBackendImageUrl } from "@/lib/imageUtils";
 
@@ -22,6 +22,39 @@ interface UploadedFile {
     preview: string;
     isExisting?: boolean;
     media?: PortfolioMedia;
+}
+
+function SuccessModal({
+    open,
+    onClose,
+    title,
+    message,
+}: {
+    open: boolean;
+    onClose: () => void;
+    title: string;
+    message: string;
+}) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <div className="p-8 text-center">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                        <CheckCircle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+                    <p className="text-sm text-gray-500 mb-8">{message}</p>
+                    <button
+                        onClick={onClose}
+                        className="w-full py-3.5 rounded-xl bg-[#C69C2E] text-white text-sm font-bold hover:bg-[#b08b29] transition-colors shadow-lg shadow-[#C69C2E]/20"
+                    >
+                        Great!
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export function PortfolioSettings() {
@@ -48,6 +81,8 @@ export function PortfolioSettings() {
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
     const [pendingPhotoFiles, setPendingPhotoFiles] = useState<File[]>([]);
     const [pendingVideoFiles, setPendingVideoFiles] = useState<File[]>([]);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Load existing portfolio
     useEffect(() => {
@@ -72,9 +107,9 @@ export function PortfolioSettings() {
 
                         data.media.forEach((media) => {
                             const url = getBackendImageUrl(media.s3_key);
-                            if (media.media_type === 'image') {
+                            if (media.media_type.startsWith('image')) {
                                 existingPhotos.push({ preview: url, isExisting: true, media });
-                            } else if (media.media_type === 'video') {
+                            } else if (media.media_type.startsWith('video')) {
                                 existingVideos.push({ preview: url, isExisting: true, media });
                             }
                         });
@@ -93,13 +128,13 @@ export function PortfolioSettings() {
     }, []);
 
     const handlePhotoUploadClick = () => {
-        if (photos.length + pendingPhotoFiles.length < 3 && photoInputRef.current) {
+        if (photos.length < 3 && photoInputRef.current) {
             photoInputRef.current.click();
         }
     };
 
     const handleVideoUploadClick = () => {
-        if (videos.length + pendingVideoFiles.length < 3 && videoInputRef.current) {
+        if (videos.length < 3 && videoInputRef.current) {
             videoInputRef.current.click();
         }
     };
@@ -109,7 +144,7 @@ export function PortfolioSettings() {
         if (!file) return;
 
         if (photos.length >= 3) {
-            alert("You can only upload up to 3 photos");
+            setError("You can only upload up to 3 photos");
             return;
         }
 
@@ -127,7 +162,7 @@ export function PortfolioSettings() {
         if (!file) return;
 
         if (videos.length >= 3) {
-            alert("You can only upload up to 3 videos");
+            setError("You can only upload up to 3 videos");
             return;
         }
 
@@ -140,7 +175,18 @@ export function PortfolioSettings() {
         }
     };
 
-    const removePhoto = (index: number) => {
+    const removePhoto = async (index: number) => {
+        const photo = photos[index];
+        if (photo.isExisting && photo.media) {
+            try {
+                await deletePortfolioMedia(photo.media.id);
+            } catch (error) {
+                console.error("Failed to delete photo:", error);
+                setError("Failed to delete photo from server");
+                return;
+            }
+        }
+
         setPhotos((prev) => {
             const newPhotos = [...prev];
             const removed = newPhotos[index];
@@ -155,7 +201,18 @@ export function PortfolioSettings() {
         });
     };
 
-    const removeVideo = (index: number) => {
+    const removeVideo = async (index: number) => {
+        const video = videos[index];
+        if (video.isExisting && video.media) {
+            try {
+                await deletePortfolioMedia(video.media.id);
+            } catch (error) {
+                console.error("Failed to delete video:", error);
+                setError("Failed to delete video from server");
+                return;
+            }
+        }
+
         setVideos((prev) => {
             const newVideos = [...prev];
             const removed = newVideos[index];
@@ -171,8 +228,9 @@ export function PortfolioSettings() {
     };
 
     const handleSubmit = async () => {
+        setError(null);
         if (!title.trim()) {
-            alert("Title is required");
+            setError("Title is required");
             return;
         }
 
@@ -235,9 +293,9 @@ export function PortfolioSettings() {
 
                     freshPortfolio.media.forEach((media) => {
                         const url = getBackendImageUrl(media.s3_key);
-                        if (media.media_type === 'image') {
+                        if (media.media_type.startsWith('image')) {
                             existingPhotos.push({ preview: url, isExisting: true, media });
-                        } else if (media.media_type === 'video') {
+                        } else if (media.media_type.startsWith('video')) {
                             existingVideos.push({ preview: url, isExisting: true, media });
                         }
                     });
@@ -247,10 +305,10 @@ export function PortfolioSettings() {
                 }
             }
 
-            alert("Portfolio saved successfully!");
+            setShowSuccess(true);
         } catch (error) {
             console.error("Failed to save portfolio:", error);
-            alert("Failed to save portfolio. Please try again.");
+            setError("Failed to save portfolio. Please try again.");
         } finally {
             setIsSaving(false);
         }
@@ -290,6 +348,13 @@ export function PortfolioSettings() {
                 <h2 className="text-sm font-bold text-gray-900">Portfolio</h2>
                 <p className="text-xs text-gray-500">Update your portfolio and setup your portfolio.</p>
             </div>
+
+            {error && (
+                <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {error}
+                </div>
+            )}
 
             {/* Form Fields */}
             <div className="space-y-6">
@@ -493,6 +558,13 @@ export function PortfolioSettings() {
                     )}
                 </Button>
             </div>
+
+            <SuccessModal
+                open={showSuccess}
+                onClose={() => setShowSuccess(false)}
+                title="Portfolio Updated!"
+                message="Your professional portfolio has been saved and is now visible to clients."
+            />
         </div>
     );
 }

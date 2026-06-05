@@ -666,6 +666,21 @@ export default function TeamManagementView() {
                                         className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
                                     />
                                 </div>
+
+                                <div className="space-y-1 select-none">
+                                    <label className="text-xs font-bold text-slate-700 block select-none" htmlFor="password">
+                                        Initial Password
+                                    </label>
+                                    <input
+                                        id="password"
+                                        type="text"
+                                        value={teamPass}
+                                        onChange={(e) => setTeamPass(e.target.value)}
+                                        placeholder="e.g. TempPass123!"
+                                        className="w-full h-10 px-3 bg-white rounded-xl border border-slate-100 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-50 text-xs text-slate-700 placeholder:text-slate-300 transition-all outline-none"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">The member will use this to login</p>
+                                </div>
                             </div>
                         </div>
 

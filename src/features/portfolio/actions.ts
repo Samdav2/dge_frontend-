@@ -6,9 +6,15 @@ import { UserPortfolio, UserPortfolioCreate, UserPortfolioUpdate, PortfolioMedia
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 const API_KEY = process.env.BACKEND_API_KEY;
 
+import { redirect } from "next/navigation";
+
 async function getAuthHeaders() {
     const session = await auth();
     const token = session?.backendToken;
+
+    if (!session || !token || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
+    }
 
     // Debug logging
     console.log("ServerAction: getAuthHeaders - Token exists:", !!token);
@@ -137,4 +143,25 @@ export async function uploadPortfolioMedia(portfolioId: string, formData: FormDa
     }
 
     return await response.json();
+}
+
+export async function deletePortfolioMedia(mediaId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`${BASE_URL}/portfolio/delete_portfolio_media/${mediaId}`, {
+            method: "DELETE",
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Failed to delete media:", response.status, errorText);
+            return { success: false, error: errorText };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting media:", error);
+        return { success: false, error: String(error) };
+    }
 }

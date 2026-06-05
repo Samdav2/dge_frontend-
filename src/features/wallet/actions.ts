@@ -1,13 +1,14 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;
@@ -160,6 +161,156 @@ export async function getUserWallet() {
         return { success: true, data };
     } catch (error) {
         console.error("Get wallet error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// ─── Payment Actions ──────────────────────────────────────────────────────────
+
+// Get supported banks list
+export async function getBanksList() {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/banks`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to fetch banks" };
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Verify a bank account number (name enquiry)
+export async function verifyBankAccount(accountNumber: string, bankCode: string) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/bank-account/verify`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ account_number: accountNumber, bank_code: bankCode }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Verification failed" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Save a verified bank account
+export async function saveBankAccount(payload: {
+    account_number: string;
+    account_name: string;
+    bank_code: string;
+    bank_name: string;
+    is_default?: boolean;
+}) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/bank-account`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to save bank account" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Get all saved bank accounts
+export async function getSavedBankAccounts() {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/bank-account`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to fetch bank accounts" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Delete a saved bank account
+export async function deleteBankAccount(accountId: string) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/bank-account/${accountId}`, { method: "DELETE", headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to delete bank account" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Initiate a deposit (get Monnify payment link)
+export async function initiateDeposit(amountNaira: number) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/deposit/initiate`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: amountNaira }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to initiate deposit" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Get deposit history
+export async function getDepositHistory() {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/deposit/history`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to fetch deposit history" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Request a withdrawal from earnings wallet
+export async function requestWithdrawal(amountNaira: number, bankAccountId: string) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/withdrawal/request`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: amountNaira, bank_account_id: bankAccountId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to request withdrawal" };
+        return { success: true, data };
+    } catch {
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Get withdrawal history
+export async function getWithdrawalHistory() {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+    try {
+        const response = await fetch(`${apiUrl}/payments/withdrawal/history`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { success: false, error: data.detail || "Failed to fetch withdrawal history" };
+        return { success: true, data };
+    } catch {
         return { success: false, error: "Network error" };
     }
 }

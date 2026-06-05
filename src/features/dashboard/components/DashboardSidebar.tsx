@@ -10,11 +10,14 @@ import {
     Car,
     Mail,
     User,
-    HeadphonesIcon
+    HeadphonesIcon,
+    LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 const MENU_ITEMS = [
     { icon: LayoutGrid, label: "Marketplace", href: "/dashboard/marketplace" },
+    { icon: Briefcase, label: "Job Board", href: "/dashboard/job-board" },
     { icon: Briefcase, label: "My Jobs", href: "/dashboard/my-jobs" },
     { icon: MessageSquare, label: "Negotiation", href: "/dashboard/negotiation" },
     { icon: Wallet, label: "Wallet", href: "/dashboard/wallet" },
@@ -65,6 +68,16 @@ export function DashboardSidebar({ mobile }: DashboardSidebarProps) {
                     );
                 })}
             </nav>
+
+            <div className="p-4 border-t border-gray-100">
+                <button
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                >
+                    <LogOut className="w-5 h-5 text-red-600" />
+                    Logout
+                </button>
+            </div>
         </aside>
     );
 }

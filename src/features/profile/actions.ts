@@ -1,13 +1,14 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;
@@ -199,6 +200,63 @@ export async function uploadPortfolioMedia(portfolioId: string, formData: FormDa
         return { success: true, data };
     } catch (error) {
         console.error("Upload media error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Get User KYC
+export async function getUserKyc() {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/kyc/get_user_kyc`, {
+            method: "GET",
+            headers,
+        });
+
+        if (response.status === 404) {
+            return { success: true, data: null };
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch KYC" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get KYC error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Submit User KYC
+export async function submitUserKyc(formData: FormData) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/kyc/create_user_kyc`, {
+            method: "POST",
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to submit KYC" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Submit KYC error:", error);
         return { success: false, error: "Network error" };
     }
 }

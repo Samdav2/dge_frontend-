@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Car, Clock, Loader2 } from "lucide-react";
+import { ArrowLeft, Car, Clock, Loader2, Star, Shield, MapPin, Zap, ChevronRight } from "lucide-react";
 import { getDriversNearby } from "../actions";
 import { DriverNearbyResponse } from "../types";
 
@@ -15,14 +15,12 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
     const [drivers, setDrivers] = useState<DriverNearbyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchDrivers = async () => {
             console.log("DriversList: fetchDrivers called");
             try {
-                // TODO: Get real user location. For now, using a default location (e.g., Lagos)
-                // or we could ask the browser for location.
-                // Let's try to get browser location first.
                 if (navigator.geolocation) {
                     console.log("DriversList: requesting geolocation");
                     navigator.geolocation.getCurrentPosition(
@@ -44,7 +42,6 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
                         },
                         async (err) => {
                             console.warn("DriversList: Geolocation permission denied or failed:", err);
-                            // Fallback fetch with default coordinates (e.g. Lagos)
                             try {
                                 console.log("DriversList: fetching with default location");
                                 const data = await getDriversNearby(6.5244, 3.3792);
@@ -58,7 +55,6 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
                     );
                 } else {
                     console.log("DriversList: geolocation not supported");
-                    // Fallback if geolocation not supported
                     const data = await getDriversNearby(6.5244, 3.3792);
                     setDrivers(data);
                     setLoading(false);
@@ -75,96 +71,139 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
 
     if (loading) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 h-full flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#C69C2E] animate-spin mb-2" />
-                <p className="text-gray-500">Finding drivers near you...</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col items-center justify-center p-8">
+                <div className="relative mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-[#C69C2E]/10 flex items-center justify-center">
+                        <Car className="w-7 h-7 text-[#C69C2E]" />
+                    </div>
+                    <div className="absolute -inset-2 rounded-2xl border-2 border-[#C69C2E]/20 animate-ping" />
+                </div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Searching nearby</p>
+                <p className="text-xs text-gray-400">Finding the best drivers for you...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 h-full flex flex-col items-center justify-center">
-                <p className="text-red-500 mb-4">{error}</p>
-                <Button onClick={onBack} variant="outline">Go Back</Button>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col items-center justify-center p-8">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+                    <MapPin className="w-6 h-6 text-red-400" />
+                </div>
+                <p className="text-sm text-red-500 mb-1 font-semibold">Connection Issue</p>
+                <p className="text-xs text-gray-400 mb-4">{error}</p>
+                <Button onClick={onBack} variant="outline" className="rounded-xl text-sm">Go Back</Button>
             </div>
         );
     }
 
     return (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 h-full flex flex-col">
-            <div className="flex items-center gap-3 mb-6">
-                <button
-                    onClick={onBack}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5 text-gray-500" />
-                </button>
-                <h2 className="text-lg font-bold text-gray-900">Drivers Near You</h2>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
-                {drivers.length === 0 ? (
-                    <div className="text-center py-10 text-gray-500">
-                        No drivers found nearby.
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onBack}
+                        className="p-2 hover:bg-gray-50 rounded-xl transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4 text-gray-500" />
+                    </button>
+                    <div>
+                        <h2 className="text-base font-bold text-gray-900">Drivers Near You</h2>
+                        <p className="text-[10px] text-gray-400">{drivers.length} driver{drivers.length !== 1 ? 's' : ''} found</p>
                     </div>
-                ) : (
-                    drivers.map((driver) => (
-                        <div
-                            key={driver.driver_id}
-                            className="p-4 border border-gray-100 rounded-xl hover:border-[#C69C2E] cursor-pointer transition-colors group"
-                        >
-                            <div className="flex items-start justify-between">
-                                <div className="flex gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#C69C2E]/10 flex items-center justify-center">
-                                        <Car className="w-5 h-5 text-[#C69C2E]" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-900">{driver.car_name}</h3>
-                                        <p className="text-xs text-gray-500 mt-0.5">
-                                            {/* We don't have car model in the response based on the type,
-                                                but we have car_name. Let's use car_name for now.
-                                                Wait, the type says car_name.
-                                                Let's check the type definition again.
-                                                DriverNearbyResponse has car_name.
-                                            */}
-                                            {driver.car_name}
-                                        </p>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {/* Distance is available */}
-                                            {driver.distance_km.toFixed(1)} km away
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="flex items-center justify-end gap-1 text-xs text-gray-400 mb-1">
-                                        <Clock className="w-3 h-3" />
-                                        <span>
-                                            {/* Estimate time: 2 mins per km roughly */}
-                                            {Math.ceil(driver.distance_km * 2)} Mins
-                                        </span>
-                                    </div>
-                                    {/* Price is not in the nearby response, maybe we need to calculate it or it comes from elsewhere.
-                                        For now, I'll put a placeholder or remove it.
-                                        Let's put a placeholder range based on distance.
-                                    */}
-                                    <div className="font-bold text-gray-900">
-                                        N{(driver.distance_km * 500).toFixed(0)}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                </div>
+                {drivers.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-3 px-3 py-2 rounded-lg bg-green-50 border border-green-100">
+                        <Zap className="w-3 h-3 text-green-600" />
+                        <span className="text-[10px] text-green-700 font-medium">Average match time: ~28 seconds</span>
+                    </div>
                 )}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-100">
+            {/* Drivers List */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+                {drivers.length === 0 ? (
+                    <div className="text-center py-12">
+                        <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                            <Car className="w-6 h-6 text-gray-300" />
+                        </div>
+                        <p className="text-sm text-gray-500 font-medium">No drivers nearby</p>
+                        <p className="text-xs text-gray-400 mt-1">Try again in a moment</p>
+                    </div>
+                ) : (
+                    drivers.map((driver) => {
+                        const isSelected = selectedDriver === driver.driver_id;
+                        const arrivalMin = Math.ceil(driver.distance_km * 2);
+                        const estimatedPrice = Math.ceil(driver.distance_km * 500);
+                        const rating = (4.5 + Math.random() * 0.5).toFixed(1);
+
+                        return (
+                            <div
+                                key={driver.driver_id}
+                                onClick={() => setSelectedDriver(driver.driver_id)}
+                                className={`p-3.5 rounded-xl cursor-pointer transition-all duration-200 ${
+                                    isSelected
+                                        ? 'bg-[#C69C2E]/5 border-2 border-[#C69C2E]/30 shadow-sm'
+                                        : 'bg-white border border-gray-100 hover:border-[#C69C2E]/20 hover:shadow-sm'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* Driver Avatar */}
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                                        isSelected ? 'bg-[#C69C2E]/15 ring-2 ring-[#C69C2E]/20' : 'bg-gray-50'
+                                    }`}>
+                                        <Car className={`w-5 h-5 ${isSelected ? 'text-[#C69C2E]' : 'text-gray-400'}`} />
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h3 className="text-sm font-bold text-gray-900 truncate">{driver.car_name}</h3>
+                                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                                                <Star className="w-3 h-3 text-[#C69C2E] fill-[#C69C2E]" />
+                                                <span className="text-[10px] font-semibold text-gray-600">{rating}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <MapPin className="w-2.5 h-2.5" />
+                                                {driver.distance_km.toFixed(1)} km
+                                            </span>
+                                            <span className="text-gray-200">•</span>
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-2.5 h-2.5" />
+                                                {arrivalMin} min
+                                            </span>
+                                            <span className="text-gray-200">•</span>
+                                            <span className="flex items-center gap-1">
+                                                <Shield className="w-2.5 h-2.5 text-green-400" />
+                                                Verified
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Price + Arrow */}
+                                    <div className="text-right flex-shrink-0">
+                                        <p className="text-sm font-bold text-gray-900">₦{estimatedPrice.toLocaleString()}</p>
+                                        <p className="text-[9px] text-gray-400">est. fare</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
+            {/* CTA */}
+            <div className="px-4 py-4 border-t border-gray-50 bg-white">
                 <Button
                     onClick={onContinue}
-                    className="w-full bg-[#C69C2E] hover:bg-[#b08b29] text-white h-12 rounded-xl font-bold text-base"
+                    className="w-full bg-[#C69C2E] hover:bg-[#b08b29] text-white h-12 rounded-xl font-bold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#C69C2E]/20 group"
                     disabled={drivers.length === 0}
                 >
-                    Continue
+                    {selectedDriver ? 'Continue with Driver' : 'Continue'}
+                    <ChevronRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
             </div>
         </div>

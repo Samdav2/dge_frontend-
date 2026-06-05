@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Conversation } from "../types";
 import FallbackImage from "@/components/ui/FallbackImage";
@@ -12,6 +12,7 @@ interface ConversationListProps {
     selectedId?: string | null;
     currentUserId?: string | null;
     onChatSelect?: (conversation: Conversation) => void;
+    onDelete?: (conversationId: string) => void;
 }
 
 export function ConversationList({
@@ -19,7 +20,8 @@ export function ConversationList({
     isLoading = false,
     selectedId,
     currentUserId,
-    onChatSelect
+    onChatSelect,
+    onDelete
 }: ConversationListProps) {
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -133,6 +135,18 @@ export function ConversationList({
                                         <span className="w-5 h-5 bg-[#C69C2E] text-white text-[10px] font-bold flex items-center justify-center rounded-full">
                                             {conv.unreadCount}
                                         </span>
+                                    )}
+                                    {onDelete && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDelete(conv.id);
+                                            }}
+                                            className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
+                                            title="Delete conversation"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     )}
                                 </div>
                             </div>

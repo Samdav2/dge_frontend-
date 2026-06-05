@@ -14,7 +14,8 @@ import { useOpenPostedJobs } from "@/features/posted-jobs/hooks/usePostedJobs";
 import { PostedJob } from "@/features/posted-jobs/actions";
 import { PostedJobDetailsModal } from "./PostedJobDetailsModal";
 import { CreatePostedJobModal } from "./CreatePostedJobModal";
-import Image from "next/image";
+import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 const DGE_LOGO = "/DGE logo.png";
 
@@ -35,7 +36,6 @@ function JobStatusBadge({ status }: { status: PostedJob["status"] }) {
 function JobCard({ job, onClick }: { job: PostedJob; onClick: () => void }) {
     const minK = (job.min_price_cents / 100).toLocaleString();
     const maxK = (job.max_price_cents / 100).toLocaleString();
-    const imgSrc = job.image || DGE_LOGO;
 
     return (
         <button
@@ -44,12 +44,10 @@ function JobCard({ job, onClick }: { job: PostedJob; onClick: () => void }) {
         >
             {/* Image */}
             <div className="relative w-full h-28 bg-gray-50">
-                <Image
-                    src={imgSrc}
+                <FallbackImage
+                    src={getBackendImageUrl(job.image)}
                     alt={job.title}
-                    fill
-                    className="object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = DGE_LOGO; }}
+                    className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 <div className="absolute top-2 right-2">

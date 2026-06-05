@@ -1,12 +1,13 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
         return null;
     }
 
@@ -27,7 +28,7 @@ console.log("Inbox Actions API URL:", apiUrl);
 // Get backend token for WebSocket auth
 export async function getBackendToken(): Promise<string | null> {
     const session = await auth();
-    if (!session || !session.backendToken) {
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
         return null;
     }
     let token = session.backendToken;
@@ -304,6 +305,31 @@ export async function deleteMessage(messageId: string) {
         return { success: true };
     } catch (error) {
         console.error("Delete message error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+// Delete Conversation
+export async function deleteConversation(conversationId: string) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/conversations/conversations/${conversationId}`, {
+            method: "DELETE",
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to delete conversation" };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Delete conversation error:", error);
         return { success: false, error: "Network error" };
     }
 }

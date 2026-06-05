@@ -9,18 +9,15 @@ import {
     SupportTicketReplyCreate
 } from "./types";
 
+import { redirect } from "next/navigation";
+
 // Helper function to get auth headers
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session) {
-        console.warn("Support Actions: No session found");
-        return null;
-    }
-
-    if (!session.backendToken) {
-        console.warn("Support Actions: No backendToken found in session");
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        console.warn("Support Actions: No session or token found, redirecting to login");
+        redirect("/login");
     }
 
     let token = session.backendToken;

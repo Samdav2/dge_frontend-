@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { createNegotiation } from "@/features/negotiation/actions";
+import { useStatusModal } from "@/app/admin/components/StatusModalProvider";
 
 interface NegotiationModalProps {
     isOpen: boolean;
@@ -22,15 +23,18 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
     const [negotiationPrice, setNegotiationPrice] = useState("");
     const [message, setMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { showModal } = useStatusModal();
 
     const handleSubmit = async () => {
         if (!negotiationPrice || isNaN(Number(negotiationPrice))) {
-            setError("Please enter a valid negotiation price");
+            showModal({
+                type: "error",
+                title: "Invalid Price",
+                message: "Please enter a valid negotiation price"
+            });
             return;
         }
 
-        setError(null);
         setIsSubmitting(true);
 
         try {
@@ -49,11 +53,19 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
                 setMessage("");
                 onSubmit();
             } else {
-                setError(result.error || "Failed to create negotiation");
+                showModal({
+                    type: "error",
+                    title: "Negotiation Failed",
+                    message: result.error || "Failed to create negotiation"
+                });
             }
         } catch (err) {
             console.error("Negotiation error:", err);
-            setError("An unexpected error occurred");
+            showModal({
+                type: "error",
+                title: "Unexpected Error",
+                message: "An unexpected error occurred while submitting your negotiation."
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -62,7 +74,6 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
     const handleClose = () => {
         setNegotiationPrice("");
         setMessage("");
-        setError(null);
         onClose();
     };
 
@@ -75,12 +86,6 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
                         Enter your proposed price for this service. The seller will be notified of your offer.
                     </DialogDescription>
                 </DialogHeader>
-
-                {error && (
-                    <div className="p-3 rounded-lg bg-red-50 text-red-500 text-sm text-center">
-                        {error}
-                    </div>
-                )}
 
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">

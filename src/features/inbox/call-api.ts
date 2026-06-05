@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace('0.0.0.0', '127.0.0.1');
@@ -8,8 +9,8 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').rep
 async function getAuthHeaders() {
     const session = await auth();
 
-    if (!session || !session.backendToken) {
-        return null;
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
+        redirect("/login");
     }
 
     let token = session.backendToken;

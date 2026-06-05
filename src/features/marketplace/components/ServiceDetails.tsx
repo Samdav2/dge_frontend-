@@ -10,6 +10,8 @@ import { createNegotiation } from "@/features/negotiation/actions";
 import { getBackendImageUrl } from "@/lib/imageUtils";
 import { Loader2 } from "lucide-react";
 import FallbackImage from "@/components/ui/FallbackImage";
+import { useStatusModal } from "@/app/admin/components/StatusModalProvider";
+import { useRouter } from "next/navigation";
 
 interface ServiceDetailsProps {
     service: {
@@ -40,14 +42,16 @@ interface ServiceDetailsProps {
             youtube?: string;
         };
     };
+    isPublic?: boolean;
 }
 
-export function ServiceDetails({ service }: ServiceDetailsProps) {
+export function ServiceDetails({ service, isPublic = false }: ServiceDetailsProps) {
     const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState(false);
     const [isNegotiationSuccessOpen, setIsNegotiationSuccessOpen] = useState(false);
     const [isApplicationSuccessOpen, setIsApplicationSuccessOpen] = useState(false);
     const [isApplying, setIsApplying] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { showModal } = useStatusModal();
+    const router = useRouter();
 
     const handleNegotiationSubmit = () => {
         setIsNegotiationModalOpen(false);
@@ -55,8 +59,12 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
     };
 
     const handleApply = async () => {
+        if (isPublic) {
+            router.push("/login");
+            return;
+        }
+
         setIsApplying(true);
-        setError(null);
         try {
             // Parse price string to number (remove currency symbol and commas)
             const priceString = service.price.replace(/[^0-9.]/g, '');
@@ -73,11 +81,19 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
             if (result.success) {
                 setIsApplicationSuccessOpen(true);
             } else {
-                setError(result.error || "Failed to apply for service");
+                showModal({
+                    type: "error",
+                    title: "Application Failed",
+                    message: result.error || "Failed to apply for service"
+                });
             }
         } catch (err) {
             console.error("Application error:", err);
-            setError("An unexpected error occurred");
+            showModal({
+                type: "error",
+                title: "Unexpected Error",
+                message: "An unexpected error occurred while applying."
+            });
         } finally {
             setIsApplying(false);
         }
@@ -89,7 +105,7 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Link
-                        href="/dashboard/marketplace"
+                        href={isPublic ? "/" : "/dashboard/marketplace"}
                         className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors shrink-0"
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -97,19 +113,15 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
                     <h1 className="text-2xl font-bold text-gray-900">Services Details</h1>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
-                    <Link href="/dashboard" className="hover:text-gray-900">Home</Link>
+                    <Link href={isPublic ? "/" : "/dashboard"} className="hover:text-gray-900">Home</Link>
                     <span>/</span>
-                    <Link href="/dashboard/marketplace" className="hover:text-gray-900">Marketplace</Link>
+                    <Link href={isPublic ? "/#services" : "/dashboard/marketplace"} className="hover:text-gray-900">
+                        {isPublic ? "Services" : "Marketplace"}
+                    </Link>
                     <span>/</span>
                     <span className="text-[#C69C2E]">Details</span>
                 </div>
             </div>
-
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-                    {error}
-                </div>
-            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column - Main Content */}
@@ -182,7 +194,7 @@ export function ServiceDetails({ service }: ServiceDetailsProps) {
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    onClick={() => setIsNegotiationModalOpen(true)}
+                                    onClick={() => isPublic ? router.push("/login") : setIsNegotiationModalOpen(true)}
                                     className="flex-1 border-[#C69C2E] text-[#C69C2E] hover:bg-[#C69C2E]/5 h-12 rounded-xl text-base font-medium w-full"
                                 >
                                     Make Negotiation

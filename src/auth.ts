@@ -17,20 +17,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 username: { label: "Username", type: "text" },
                 password: { label: "Password", type: "password" },
                 isAdmin: { label: "IsAdmin", type: "text" },
+                isTeam: { label: "IsTeam", type: "text" },
             },
             async authorize(credentials) {
                 if (!credentials?.username || !credentials?.password) return null;
 
                 try {
                     const isAdmin = credentials.isAdmin === "true";
+                    const isTeam = credentials.isTeam === "true";
                     const backendUrl = process.env.NEXT_PUBLIC_API_URL;
                     const apiKey = process.env.BACKEND_API_KEY;
                     console.log("Debug: Login Attempt - Backend URL:", backendUrl);
                     console.log("Debug: Login Attempt - API Key exists:", !!apiKey);
-                    console.log("Debug: Login Attempt - API Key length:", apiKey?.length);
-                    console.log("Debug: Login Attempt - IsAdmin:", isAdmin);
+                    console.log("Debug: Login Attempt - IsAdmin:", isAdmin, "IsTeam:", isTeam);
 
-                    const endpoint = isAdmin ? "/super_admin/super_admins/login" : "/auth/token";
+                    let endpoint = "/auth/token";
+                    if (isAdmin) endpoint = "/super_admin/super_admins/login";
+                    else if (isTeam) endpoint = "/auth/team-login";
 
                     const res = await fetch(`${backendUrl}${endpoint}`, {
                         method: 'POST',
@@ -104,6 +107,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     // Explicitly set role
                     if (isAdmin && user && typeof user === 'object') {
                         (user as any).role = "admin";
+                    } else if (isTeam && user && typeof user === 'object') {
+                        (user as any).role = "team_member";
                     } else if (user && typeof user === 'object') {
                         (user as any).role = "user";
                     }
@@ -195,16 +200,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
         async jwt({ token, user }) {
             // Initial sign in
-            console.log("=== JWT CALLBACK ===");
-            console.log("Debug: JWT Callback - user present:", !!user);
             if (user) {
-                console.log("Debug: JWT Callback - Setting token fields from user:", user.id);
                 token.backendToken = user.backendToken;
                 token.backendUser = user.backendUser;
                 token.role = (user as any).role;
                 token.id = user.id;
-            } else {
-                console.log("Debug: JWT Callback - Token persistence check:", token.id, !!token.backendToken);
+            }
+
+            // Check for rotated token from backend-api utility
+            const cookieStore = await cookies();
+            const rotatedToken = cookieStore.get("rotated_access_token")?.value;
+            if (rotatedToken) {
+                console.log("Debug: JWT Callback - Picking up rotated access token from cookie");
+                token.backendToken = rotatedToken;
+                // Clear the temporary cookie
+                cookieStore.set({
+                    name: "rotated_access_token",
+                    value: "",
+                    expires: new Date(0),
+                    path: "/",
+                });
             }
 
             // Check if token is expired or about to expire

@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 import { DriverNearbyResponse } from "./types";
 
@@ -9,9 +10,9 @@ async function getAuthHeaders() {
     console.log("ServerAction: getAuthHeaders - Session exists:", !!session);
     console.log("ServerAction: getAuthHeaders - Backend Token exists:", !!session?.backendToken);
 
-    if (!session || !session.backendToken) {
+    if (!session || !session.backendToken || (session as any).error === "RefreshAccessTokenError") {
         console.error("ServerAction: getAuthHeaders - No session or token found");
-        return null;
+        redirect("/login");
     }
 
     let token = session.backendToken;
@@ -42,7 +43,7 @@ export async function getDriversNearby(lat: number, lon: number, radius: number 
     }
 
     // Replace 0.0.0.0 with 127.0.0.1 for server-side fetching if needed
-    const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/driving/drivers/nearby?latitude=${lat}&longitude=${lon}&radius=${radius}`;
+    const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/nearby?latitude=${lat}&longitude=${lon}&radius=${radius}`;
     console.log(`ServerAction: Fetching ${targetUrl}`);
 
     try {
@@ -115,5 +116,145 @@ export async function reverseGeocode(lat: number, lon: number) {
     } catch (error) {
         console.error("ServerAction: Reverse Geocode Failed:", error);
         return null;
+    }
+}
+
+export async function getDriverProfile() {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/me`;
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers,
+        });
+
+        if (response.status === 404) {
+            return { success: true, data: null };
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch driver profile" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get driver profile error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function createDriverProfile(data: { car_name: string; car_model: string; plate_number: string }) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/`;
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to create driver profile" };
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Create driver profile error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function updateDriverProfile(data: { car_name?: string; car_model?: string; plate_number?: string }) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/`;
+        const response = await fetch(targetUrl, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to update driver profile" };
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Update driver profile error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function getMyTripsAsRider() {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/trips/my/rider`;
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch rider trips" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get rider trips error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function getMyTripsAsDriver() {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/trips/my/driver`;
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers,
+        });
+
+        if (response.status === 404) {
+            return { success: true, data: [] };
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to fetch driver trips" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error("Get driver trips error:", error);
+        return { success: false, error: "Network error" };
     }
 }
