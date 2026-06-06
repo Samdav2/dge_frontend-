@@ -5,6 +5,7 @@ import {
     Droplet, Wrench, Zap, Car, Brush, Camera, Truck, GraduationCap,
     Search, Users, CheckCircle2, ArrowRight, Sparkles
 } from "lucide-react";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 const ORBIT_ICONS = [
     { icon: Droplet, label: "Plumbing", color: "#3B82F6" },
@@ -127,8 +128,8 @@ export function EcosystemSection() {
                     </p>
                 </div>
 
-                {/* Orbital Visualization + Steps — Side by Side on Desktop */}
-                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20 mb-20 md:mb-28">
+                {/* Orbital Visualization + Steps + Image — 3 Columns on Desktop */}
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 mb-20 md:mb-28">
 
                     {/* Left: Orbital Hub */}
                     <div className={`relative flex-shrink-0 w-[280px] h-[280px] md:w-[380px] md:h-[380px] transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
@@ -260,6 +261,16 @@ export function EcosystemSection() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Right: Portrait Image */}
+                    <div className={`hidden lg:block flex-shrink-0 w-[300px] xl:w-[340px] h-[450px] xl:h-[480px] relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
+                        <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full pointer-events-none" />
+                        <FallbackImage 
+                            src="/images/professional_service_provider.png" 
+                            alt="Professional Local Service Provider" 
+                            className="relative z-10 w-full h-full object-cover"
+                        />
                     </div>
                 </div>
 

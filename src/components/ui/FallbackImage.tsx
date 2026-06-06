@@ -15,11 +15,11 @@ const FallbackImage: React.FC<FallbackImageProps> = ({
   className, 
   ...props 
 }) => {
-  const [imgSrc, setImgSrc] = useState<string | undefined>(src);
+  const [imgSrc, setImgSrc] = useState<string | undefined>(src as string | undefined);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setImgSrc(src);
+    setImgSrc(src as string | undefined);
     setHasError(false);
   }, [src]);
 

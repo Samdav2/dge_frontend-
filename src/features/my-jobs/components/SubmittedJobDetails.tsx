@@ -177,7 +177,7 @@ export function SubmittedJobDetails() {
                                         Attached Links
                                     </h3>
                                     <div className="space-y-2">
-                                        {submission.links.map((link, idx) => (
+                                        {submission.links.map((link: string, idx: number) => (
                                             <a 
                                                 key={idx}
                                                 href={link.startsWith('http') ? link : `https://${link}`} 
@@ -198,7 +198,7 @@ export function SubmittedJobDetails() {
                                 <div>
                                     <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3">Delivered Files</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {submission.file_urls.map((url, idx) => (
+                                        {submission.file_urls.map((url: string, idx: number) => (
                                             <a 
                                                 key={idx}
                                                 href={getBackendImageUrl(url)} 

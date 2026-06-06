@@ -22,6 +22,12 @@ interface UserDetail {
     kyc_expiry_date: string | null;
     kyc_verified_date: string | null;
     kyc_uploaded_date: string | null;
+    kyc_first_name?: string | null;
+    kyc_last_name?: string | null;
+    kyc_nationality?: string | null;
+    kyc_address?: string | null;
+    kyc_date_of_birth?: string | null;
+    kyc_rejection_reason?: string | null;
 }
 
 interface Wallet {

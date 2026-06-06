@@ -15,8 +15,8 @@ export function Header() {
 
                 <div className="flex items-center gap-8">
                     <nav className="hidden md:flex gap-8 text-sm font-medium text-muted-foreground">
-                        <a href="#" className="hover:text-primary transition-colors">Services</a>
-                        <a href="#" className="hover:text-primary transition-colors">Driving</a>
+                        <Link href="/services" className="hover:text-primary transition-colors">Services</Link>
+                        <Link href="/dashboard/driving" className="hover:text-primary transition-colors">Driving</Link>
                     </nav>
 
                     <div className="flex gap-4">
