@@ -26,12 +26,11 @@ export function HeroSection() {
                     {/* Content */}
                     <div className="relative z-20 text-center text-white px-4 md:px-6 max-w-5xl mx-auto py-12">
                         <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight leading-tight md:leading-[1.1]">
-                            Connecting clients in need to <br className="hidden md:block" /> freelancers who deliver
+                            One Ecosystem.<br className="hidden md:block" /> Infinite Possibilities.<br className="hidden md:block" /> <span style={{ color: '#C69C2E' }}>Absolute Trust.</span>
                         </h1>
 
                         <p className="text-base sm:text-lg md:text-xl text-gray-100 mb-8 md:mb-12 max-w-2xl mx-auto font-light tracking-wide px-2">
-                            Pretium turpis volutpat velit suspendisse tincidunt. Commodo sed faucibus et gravida.
-                            Amet diam risus morbi sed enim placerat eu placerat eget.
+                            From skilled freelancers and local professionals to reliable rides — connect, negotiate, and transact with peace of mind. Every payment is Escrow-protected until you're 100% satisfied.
                         </p>
 
                         <div className="max-w-2xl mx-auto relative px-2 md:px-0">

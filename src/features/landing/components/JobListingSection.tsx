@@ -17,12 +17,19 @@ export function JobListingSection() {
                         </div>
                     </div>
                     <div className="flex-1 order-1 md:order-2">
-                        <h2 className="text-3xl font-bold mb-6">Make an incredible <br /> Job listing in seconds</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            Malesuada nisl ultricies volutpat suspendisse aliquet. Mus at justo nullam tortor bibendum vitae posuere etiam. Auctor tincidunt quam habitant faucibus arcu.
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C69C2E] mb-4">For Clients & Businesses</p>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">
+                            Post a Project.<br />
+                            <span className="text-[#C69C2E]">Get the Best Talent.</span>
+                        </h2>
+                        <p className="text-muted-foreground mb-4 leading-relaxed">
+                            Can't find what you're looking for? Post a job for free and let the talent come to you. Freelancers and service providers from across Nigeria will submit competitive bids for your consideration.
+                        </p>
+                        <p className="text-muted-foreground mb-8 leading-relaxed">
+                            Review proposals, negotiate prices directly, and once you're happy — confirm the deal. Your payment is secured in Escrow until the job is done right.
                         </p>
                         <Link href="/register">
-                            <Button variant="default" className="bg-[#C69C2E] hover:bg-[#B58B1D] text-white">Get Started</Button>
+                            <Button variant="default" className="bg-[#C69C2E] hover:bg-[#B58B1D] text-white px-8 py-5 rounded-xl font-semibold">Post a Job for Free</Button>
                         </Link>
                     </div>
                 </div>

@@ -17,20 +17,20 @@ const RIDE_STATS = [
 const FEATURE_CARDS = [
     {
         icon: DollarSign,
-        title: "Drive & Earn",
-        desc: "Set your own schedule and earn competitive rates. Surge pricing means more money during peak hours.",
+        title: "Drive & Earn on Your Terms",
+        desc: "Set your own schedule and earn competitive, transparent rates. Surge pricing rewards you during peak hours — your hustle, your rules.",
         color: "#10B981",
     },
     {
         icon: Clock,
-        title: "Flexible Schedule",
-        desc: "Work when you want, how you want. Full-time or part-time — you're the boss of your own time.",
+        title: "Flexible & Stress-Free",
+        desc: "Work full-time or part-time. Every trip you take on DGE Rides is a step towards your financial independence.",
         color: "#3B82F6",
     },
     {
         icon: Shield,
-        title: "Safety First",
-        desc: "Real-time GPS tracking, verified riders, emergency SOS button, and 24/7 support for every trip.",
+        title: "Community Safety First",
+        desc: "Real-time GPS tracking, verified riders, an emergency SOS button, and 24/7 dedicated support. We protect our drivers and passengers equally.",
         color: "#F59E0B",
     },
 ];
@@ -234,10 +234,10 @@ export function DrivingSection() {
                             <span className="text-xs font-semibold text-primary tracking-wider uppercase">DGE Rides</span>
                         </div>
                         <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                            Riding is the<br /><span className="text-gradient-gold">new driving</span>
+                            Travel Safe.<br /><span className="text-gradient-gold">Travel with DGE.</span>
                         </h2>
                         <p className="text-gray-300 text-sm md:text-base mb-8 max-w-md leading-relaxed">
-                            Get anywhere you need to go with safe, affordable rides. Or hit the road as a driver and earn on your own terms.
+                            DGE Rides is not just a taxi service — it is a trusted community of verified drivers committed to getting you where you need to go safely and comfortably. Or join as a driver and be part of something bigger.
                         </p>
 
                         {/* Stats */}
@@ -262,11 +262,12 @@ export function DrivingSection() {
                     {/* Left: Content */}
                     <div className={`flex-1 transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
                         <h3 className="text-2xl md:text-4xl font-bold text-white mb-6 leading-tight">
-                            Experience the ride<br />
-                            <span className="text-gray-400">before you book</span>
+                            See how fast we find
+                            <br />
+                            <span className="text-gray-400">your trusted driver</span>
                         </h3>
                         <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-8 max-w-md">
-                            Try our interactive ride simulator. See how fast we match you with a verified driver nearby. Real-time tracking, fair pricing, and a seamless booking experience.
+                            Every DGE Rides driver is background-checked and community-rated. Try our live simulator and experience a booking from start to finish — fast, safe, and completely transparent.
                         </p>
 
                         <div className="space-y-4 mb-8">
@@ -337,8 +338,8 @@ export function DrivingSection() {
 
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                         <div>
-                            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ready to hit the road?</h3>
-                            <p className="text-sm text-gray-400">Join thousands of drivers already earning with DGE</p>
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ready to join the DGE Rides community?</h3>
+                            <p className="text-sm text-gray-400">Thousands of drivers and riders are already part of the trusted DGE World ecosystem.</p>
                         </div>
                         <Button className="bg-primary hover:bg-primary/90 text-white px-8 py-5 rounded-xl text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
                             <Sparkles className="h-4 w-4" />

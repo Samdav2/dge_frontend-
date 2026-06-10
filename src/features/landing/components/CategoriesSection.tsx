@@ -52,8 +52,9 @@ export function CategoriesSection() {
             <div className="container mx-auto px-4 md:px-8 max-w-[1600px]">
                 {/* Section Header */}
                 <div className="text-center mb-10">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">What We Offer</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">Your Ecosystem</p>
                     <h2 className="text-2xl md:text-3xl font-bold">Explore Our Services</h2>
+                    <p className="text-muted-foreground text-sm mt-2 max-w-sm mx-auto">From home repairs to creative freelancers — every service you need, all in one trusted place.</p>
                 </div>
 
                 {/* Icon Grid — 4 columns always */}
@@ -109,7 +110,7 @@ export function CategoriesSection() {
                             <div>
                                 <DialogTitle className="text-xl font-bold text-white">All Services</DialogTitle>
                                 <DialogDescription className="text-sm text-gray-400 mt-1">
-                                    Explore 20+ service categories available on DGE
+                                    Explore 20+ trusted service categories available across the DGE World ecosystem.
                                 </DialogDescription>
                             </div>
                         </div>

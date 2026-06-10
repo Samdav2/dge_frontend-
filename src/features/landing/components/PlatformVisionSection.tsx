@@ -4,36 +4,36 @@ import { useEffect, useRef, useState } from "react";
 import { Globe, Zap, ShieldCheck, CreditCard, ArrowRight, Sparkles } from "lucide-react";
 
 const USE_CASES = [
-    { emoji: "🔧", text: "Need a plumber?", sub: "Found one 2km away — arriving in 20 min" },
-    { emoji: "🚗", text: "Booking a ride to work?", sub: "Driver arriving in 4 min — ₦850 estimated" },
-    { emoji: "🍽️", text: "Looking for a caterer?", sub: "12 options near you — starting from ₦15,000" },
-    { emoji: "📸", text: "Need a photographer?", sub: "5 verified professionals — available this weekend" },
-    { emoji: "💇", text: "Want a home stylist?", sub: "8 beauty experts nearby — book in seconds" },
+    { emoji: "🔧", text: "Need a plumber urgently?", sub: "Matched with a verified pro 1.5km away" },
+    { emoji: "🚗", text: "Booking a DGE Ride?", sub: "Driver arriving in 4 min — ₦1,200 est." },
+    { emoji: "🍽️", text: "Hiring a caterer for your event?", sub: "12 vetted options near you — negotiate now" },
+    { emoji: "💻", text: "Need a web developer?", sub: "5 top freelancers ready — Escrow-protected" },
+    { emoji: "📸", text: "Looking for a photographer?", sub: "8 verified pros available this weekend" },
 ];
 
 const FEATURES = [
     {
         icon: Globe,
-        title: "Local First",
-        desc: "Connect with verified providers right in your neighborhood. Every service, close to home.",
+        title: "Everything, Everywhere",
+        desc: "From local home services to national freelance talent — your entire service ecosystem, in one place.",
         color: "#3B82F6",
     },
     {
         icon: Zap,
-        title: "Instant Matching",
-        desc: "AI-powered matching finds the right person in seconds. No waiting, no hassle.",
+        title: "Instant Smart Matching",
+        desc: "Our system connects you with the most relevant, available provider in seconds. No scrolling, no guessing.",
         color: "#F59E0B",
     },
     {
         icon: ShieldCheck,
-        title: "Trust & Safety",
-        desc: "Every provider is vetted, reviewed, and accountable. Your safety is our priority.",
+        title: "Trust is Our Foundation",
+        desc: "Verified providers, community reviews, and Escrow-backed transactions ensure every interaction is safe.",
         color: "#10B981",
     },
     {
         icon: CreditCard,
-        title: "Secure Payments",
-        desc: "Pay only when you're satisfied. Every transaction is fully protected.",
+        title: "Pay When Satisfied",
+        desc: "Funds are held securely in Escrow and released only when you approve the work. Your satisfaction is guaranteed.",
         color: "#8B5CF6",
     },
 ];
@@ -87,19 +87,17 @@ export function PlatformVisionSection() {
                         </div>
 
                         <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-6">
-                            One App.<br />
+                            One World.<br />
                             Every Service.<br />
-                            <span className="text-gradient-gold">Your Ecosystem.</span>
+                            <span className="text-gradient-gold">Your Community.</span>
                         </h2>
 
                         <p className="text-gray-400 text-sm md:text-base leading-relaxed max-w-md mb-8">
-                            Imagine a world where every service you need is just one tap away.
-                            DGE is building that world — a connected ecosystem that puts
-                            you at the center of everything.
+                            DGE World is a unified ecosystem where every service, every transaction, and every relationship is built on a foundation of <strong className="text-white">trust, unity, and unique experiences</strong>. You are at the center of everything we do.
                         </p>
 
                         <button className="group inline-flex items-center gap-3 px-6 py-3 bg-primary hover:bg-primary/90 rounded-xl text-white font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
-                            Join the Ecosystem
+                            Join Our Community
                             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
