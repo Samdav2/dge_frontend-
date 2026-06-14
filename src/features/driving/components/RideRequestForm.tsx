@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import { MapPin, Navigation2, Clock, Shield, Sparkles, ArrowRight, Locate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LocationInput } from "./LocationInput";
-import { reverseGeocode } from "../actions";
+import { reverseGeocode, broadcastRideIntent } from "../actions";
 
 interface RideRequestFormProps {
-    onSubmit: () => void;
+    onSubmit: (data: { pickup_lat: number, pickup_lng: number, dropoff_lat: number, dropoff_lng: number, pickup_address: string, dropoff_address: string, estimated_distance: number }) => void;
     onLocationSelect?: (lat: number, lon: number) => void;
 }
 
@@ -66,7 +66,11 @@ export function RideRequestForm({ onSubmit, onLocationSelect }: RideRequestFormP
         : null;
 
     const estimatedTime = estimatedDistance ? Math.ceil(parseFloat(estimatedDistance) * 2.5) : null;
-    const estimatedFare = estimatedDistance ? Math.ceil(parseFloat(estimatedDistance) * 500) : null;
+    const estimatedFare = estimatedDistance ? (() => {
+        const base = 2000;
+        const dist = Math.ceil(parseFloat(estimatedDistance) * 500);
+        return base + dist + Math.ceil((base + dist) * 0.1);
+    })() : null;
 
     return (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-auto lg:h-full flex flex-col overflow-hidden">
@@ -170,11 +174,25 @@ export function RideRequestForm({ onSubmit, onLocationSelect }: RideRequestFormP
             {/* CTA Button */}
             <div className="px-5 pb-5">
                 <Button
-                    onClick={() => {
+                    disabled={!pickupCoords || !destinationCoords}
+                    onClick={async () => {
                         console.log("RideRequestForm: See Available Drivers clicked", { pickupCoords, destinationCoords });
-                        onSubmit();
+
+                        if (pickupCoords && destinationCoords) {
+                            const payload = {
+                                pickup_lat: pickupCoords.lat,
+                                pickup_lng: pickupCoords.lon,
+                                dropoff_lat: destinationCoords.lat,
+                                dropoff_lng: destinationCoords.lon,
+                                pickup_address: pickupLocation,
+                                dropoff_address: destinationLocation,
+                                estimated_distance: parseFloat(estimatedDistance as string) || 0
+                            };
+                            broadcastRideIntent(payload).catch(err => console.error("Broadcast intent failed:", err));
+                            onSubmit(payload);
+                        }
                     }}
-                    className="w-full bg-[#C69C2E] hover:bg-[#b08b29] text-white h-13 rounded-xl font-bold text-sm mt-auto relative overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-[#C69C2E]/20"
+                    className="w-full bg-[#C69C2E] hover:bg-[#b08b29] disabled:opacity-50 text-white h-13 rounded-xl font-bold text-sm mt-auto relative overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-[#C69C2E]/20"
                 >
                     <span className="relative z-10 flex items-center justify-center gap-2">
                         See Available Drivers

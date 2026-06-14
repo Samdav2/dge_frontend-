@@ -92,6 +92,9 @@ export function SpecialSection({ title, subtitle, sortBy, limit = 4, icon, theme
                     const avatarUrl = profile?.avatar_url || service.user_picture;
                     const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(service.username || 'User')}&background=random`;
 
+                    const mediaFiles = portfolio.reduce((acc: any[], p: any) => acc.concat(p.media_files || []), []);
+                    const reviews = portfolio.reduce((acc: any[], p: any) => acc.concat(p.reviews || []), []);
+
                     return (
                         <div key={`${service.id}-${index}`} className="transform hover:-translate-y-1 transition-transform duration-300">
                             <MarketplaceCard
@@ -117,8 +120,9 @@ export function SpecialSection({ title, subtitle, sortBy, limit = 4, icon, theme
                                     youtube: socialLinks.youtube || "",
                                     twitter: socialLinks.twitter || "",
                                     instagram: socialLinks.instagram || "",
-                                    reviewsCount: 0,
-                                    media: []
+                                    reviewsCount: reviews.length,
+                                    media: mediaFiles,
+                                    reviews: reviews
                                 }}
                                 category={service.categories?.[0]?.name}
                                 status={service.status}

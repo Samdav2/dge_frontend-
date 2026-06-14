@@ -42,6 +42,9 @@ export default function ServiceDetailsPage() {
     const portfolioItems = portfolio || [];
     const socialLinks = portfolioItems.find(p => p.website || p.facebook || p.twitter || p.instagram || p.youtube) || {} as Partial<import("@/types/marketplace").PortfolioItem>;
 
+    const mediaFiles = portfolioItems.reduce((acc: any[], p: any) => acc.concat(p.media_files || []), []);
+    const reviews = portfolioItems.reduce((acc: any[], p: any) => acc.concat(p.reviews || []), []);
+
     const mappedService = {
         id: service.id,
         title: service.name,
@@ -62,14 +65,18 @@ export default function ServiceDetailsPage() {
             role: "Service Provider",
             image: profile?.avatar_url || service.user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(service.username || 'User')}&background=random`,
             rating: service.upvotes || 0,
-            reviews: 0,
+            reviews: reviews.length,
+            title: profile?.bio ? profile.bio.substring(0, 50) + "..." : "Service Provider",
+            description: profile?.bio || "No description available.",
             website: socialLinks.website || "",
             phone: profile?.phone || "",
             email: user?.email || "", // Map email from user object
             facebook: socialLinks.facebook || "",
             twitter: socialLinks.twitter || "",
             instagram: socialLinks.instagram || "",
-            youtube: socialLinks.youtube || ""
+            youtube: socialLinks.youtube || "",
+            media: mediaFiles,
+            reviewsList: reviews
         }
     };
 

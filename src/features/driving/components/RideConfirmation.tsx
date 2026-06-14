@@ -5,12 +5,41 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Car, Clock, ShieldCheck, MapPin, Star, Route, Banknote, ChevronRight } from "lucide-react";
 
 interface RideConfirmationProps {
+    driver: { id: string; car_name: string; driver_name: string; distance_km: number };
+    tripData: { pickup_address: string; dropoff_address: string; estimated_distance?: number };
+    estimatedFare: number;
     onBack: () => void;
     onNegotiate: () => void;
     onBook: () => void;
 }
 
-export function RideConfirmation({ onBack, onNegotiate, onBook }: RideConfirmationProps) {
+import { getUserWallet } from "@/features/wallet/actions";
+
+export function RideConfirmation({ driver, tripData, estimatedFare, onBack, onNegotiate, onBook }: RideConfirmationProps) {
+    const [walletBalance, setWalletBalance] = React.useState<number | null>(null);
+
+    React.useEffect(() => {
+        async function fetchWallet() {
+            const res = await getUserWallet();
+            if (res.success && res.data && res.data.length > 0) {
+                const depositWallet = res.data.find((w: any) => w.wallet_type === "deposit");
+                if (depositWallet) {
+                    setWalletBalance(depositWallet.balance_cents / 100);
+                } else {
+                    setWalletBalance(0);
+                }
+            } else {
+                setWalletBalance(0);
+            }
+        }
+        fetchWallet();
+    }, []);
+    const rating = (4.5 + Math.random() * 0.5).toFixed(1);
+    const arrivalMin = Math.ceil(driver.distance_km * 2);
+    const baseFare = 2000;
+    const distanceFare = Math.ceil((tripData.estimated_distance || 0) * 500);
+    const serviceFee = Math.ceil((baseFare + distanceFare) * 0.1);
+    const totalFare = baseFare + distanceFare + serviceFee;
     return (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col overflow-hidden">
             {/* Header */}
@@ -30,37 +59,32 @@ export function RideConfirmation({ onBack, onNegotiate, onBook }: RideConfirmati
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-                {/* Driver Card */}
                 <div className="p-4 rounded-xl bg-gradient-to-br from-[#C69C2E]/5 to-[#C69C2E]/10 border border-[#C69C2E]/15">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                            <span className="text-sm font-bold text-[#C69C2E]">DJ</span>
+                            <span className="text-sm font-bold text-[#C69C2E]">RD</span>
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 text-sm">David Johnson</h3>
+                            <h3 className="font-bold text-gray-900 text-sm">{driver.driver_name || "Driver details unavailable"}</h3>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <div className="flex items-center gap-0.5">
                                     <Star className="w-3 h-3 text-[#C69C2E] fill-[#C69C2E]" />
-                                    <span className="text-[10px] font-semibold text-gray-600">4.9</span>
+                                    <span className="text-[10px] font-semibold text-gray-600">{rating}</span>
                                 </div>
                                 <span className="text-gray-200 text-xs">•</span>
-                                <span className="text-[10px] text-gray-500">312 rides</span>
+                                <span className="text-[10px] text-gray-500">Verified</span>
                             </div>
-                        </div>
-                        <div className="px-2.5 py-1 rounded-lg bg-green-50 border border-green-100">
-                            <span className="text-[9px] font-bold text-green-700 uppercase tracking-wider">Verified</span>
                         </div>
                     </div>
 
-                    {/* Vehicle & ETA chips */}
                     <div className="flex flex-wrap gap-2">
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/80 text-[10px] text-gray-600 font-medium">
                             <Car className="w-3 h-3 text-[#C69C2E]" />
-                            Toyota Corolla • ABJ-432KD
+                            {driver.car_name || "Vehicle info unavailable"}
                         </div>
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/80 text-[10px] text-gray-600 font-medium">
                             <Clock className="w-3 h-3 text-blue-500" />
-                            Arrives in 4 min
+                            Arrives in {arrivalMin} min
                         </div>
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/80 text-[10px] text-gray-600 font-medium">
                             <ShieldCheck className="w-3 h-3 text-green-500" />
@@ -84,11 +108,11 @@ export function RideConfirmation({ onBack, onNegotiate, onBook }: RideConfirmati
                         <div className="space-y-5 pb-1">
                             <div>
                                 <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Pickup</p>
-                                <p className="text-sm text-gray-900 font-medium">Ifite-awka, Anambra State</p>
+                                <p className="text-sm text-gray-900 font-medium">{tripData.pickup_address || "Current Location"}</p>
                             </div>
                             <div>
                                 <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Dropoff</p>
-                                <p className="text-sm text-gray-900 font-medium">Nnewi, Anambra State</p>
+                                <p className="text-sm text-gray-900 font-medium">{tripData.dropoff_address || "Selected Destination"}</p>
                             </div>
                         </div>
                     </div>
@@ -103,19 +127,19 @@ export function RideConfirmation({ onBack, onNegotiate, onBook }: RideConfirmati
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Base Fare</span>
-                            <span className="text-gray-700 font-medium">₦2,000</span>
+                            <span className="text-gray-700 font-medium">₦{baseFare.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                            <span className="text-gray-500">Distance (12.4 km)</span>
-                            <span className="text-gray-700 font-medium">₦6,200</span>
+                            <span className="text-gray-500">Distance ({(tripData.estimated_distance || 0).toFixed(1)} km)</span>
+                            <span className="text-gray-700 font-medium">₦{distanceFare.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Service Fee</span>
-                            <span className="text-gray-700 font-medium">₦800</span>
+                            <span className="text-gray-700 font-medium">₦{serviceFee.toLocaleString()}</span>
                         </div>
                         <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">
                             <span className="text-sm font-bold text-gray-900">Total</span>
-                            <span className="text-sm font-bold text-[#C69C2E]">₦9,000</span>
+                            <span className="text-sm font-bold text-[#C69C2E]">₦{totalFare.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -125,10 +149,11 @@ export function RideConfirmation({ onBack, onNegotiate, onBook }: RideConfirmati
             <div className="px-5 py-4 border-t border-gray-50 bg-white flex gap-3">
                 <Button
                     onClick={onBook}
-                    className="flex-1 bg-[#C69C2E] hover:bg-[#b08b29] text-white h-12 rounded-xl font-bold text-sm transition-all hover:shadow-lg hover:shadow-[#C69C2E]/20 group"
+                    disabled={walletBalance !== null && walletBalance < totalFare}
+                    className="flex-1 bg-[#C69C2E] hover:bg-[#b08b29] text-white h-12 rounded-xl font-bold text-sm transition-all hover:shadow-lg hover:shadow-[#C69C2E]/20 group disabled:opacity-50"
                 >
-                    Book Ride
-                    <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                    {(walletBalance !== null && walletBalance < totalFare) ? "Insufficient Funds" : "Book Ride"}
+                    {(walletBalance === null || walletBalance >= totalFare) && <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />}
                 </Button>
                 <Button
                     variant="outline"

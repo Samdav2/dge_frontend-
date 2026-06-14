@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Message, WebSocketMessage, WebSocketIncoming } from '../types';
 
 interface UseChatWebSocketOptions {
@@ -154,6 +155,32 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
                         console.log('WebSocket: Received notification:', data.notification);
                         onNotificationReceivedRef.current?.(data.notification);
                         return;
+                    }
+
+                    // Handle global ride requests
+                    if (data.type === 'ride_requested') {
+                        console.log('WebSocket: Received global ride_requested:', data);
+                        
+                        // Show toast notification using Sonner
+                        toast.success("New Ride Request!", {
+                            description: "A passenger has requested a ride from you. Check your Driving tab to accept it.",
+                            duration: 10000,
+                            action: {
+                                label: "View Request",
+                                onClick: () => window.location.href = "/dashboard/driving"
+                            }
+                        });
+
+                        onNotificationReceivedRef.current?.({
+                            id: data.trip_id,
+                            type: 'ride_requested',
+                            title: 'New Ride Request',
+                            message: 'A passenger has requested a ride from you!',
+                            data: data,
+                            created_at: new Date().toISOString(),
+                            is_read: false
+                        });
+                        // Don't return here, maybe other listeners need it
                     }
 
                     // Handle negotiation update

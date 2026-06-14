@@ -1,8 +1,9 @@
 "use client";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Star, Phone, Mail, Play } from "lucide-react";
+import { Star, Phone, Mail, Play, Globe, Facebook, Youtube, Twitter, Instagram } from "lucide-react";
 import { getBackendImageUrl } from "@/lib/imageUtils";
+import FallbackImage from "@/components/ui/FallbackImage";
 
 interface ProfilePreviewModalProps {
     isOpen: boolean;
@@ -11,14 +12,14 @@ interface ProfilePreviewModalProps {
         name: string;
         image?: string;
         rating?: number;
-        // Mock data fields that would come from a real profile
         title?: string;
         reviewsCount?: number;
         description?: string;
         phone?: string;
         altPhone?: string;
         email?: string;
-        media?: string[];
+        media?: any[];
+        reviews?: any[];
         website?: string;
         facebook?: string;
         youtube?: string;
@@ -27,44 +28,32 @@ interface ProfilePreviewModalProps {
     };
 }
 
-import { Globe, Facebook, Youtube, Twitter, Instagram } from "lucide-react";
-
-import FallbackImage from "@/components/ui/FallbackImage";
-
 export function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewModalProps) {
-    // Mock data if not provided
-    const mockData = {
-        title: "Author, Narrator, Voice Artist, Editor",
-        reviewsCount: 203,
-        description: "Fermentum egestas a nec sit scelerisque lobortis aenean feugiat tellus. Aliquam ut auctor morbi sit risus ultrices. Tristique venenatis ornare leo purus egestas. Sodales ut mi id aliquet laoreet. Enim malesuada ac leo eu commodo a pharetra.",
-        phone: "+1-202-555-0141",
-        altPhone: "+1-202-555-0141",
-        email: "esther.howard@gmail.com",
-        media: [
-            "/mock-media-1.jpg", // These would be real URLs in production
-            "/mock-media-2.jpg",
-            "/mock-media-3.jpg"
-        ],
-        website: "www.estherhoward.com",
-        facebook: "https://facebook.com",
-        youtube: "https://youtube.com",
-        twitter: "https://twitter.com",
-        instagram: "https://instagram.com"
-    };
+    const reviews = user.reviews || [];
+    const reviewsCount = reviews.length;
+    
+    // Average rating
+    const averageRating = reviewsCount > 0
+        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviewsCount).toFixed(1)
+        : (user.rating || 5.0).toFixed(1);
 
     const displayUser = {
-        ...mockData,
-        ...user,
-        // Ensure we prioritize passed values even if they are empty strings (except undefined)
-        title: user.title || mockData.title,
-        description: user.description || mockData.description,
-        phone: user.phone || mockData.phone,
-        email: user.email || mockData.email,
-        website: user.website || mockData.website,
-        facebook: user.facebook || mockData.facebook,
-        twitter: user.twitter || mockData.twitter,
-        instagram: user.instagram || mockData.instagram,
-        youtube: user.youtube || mockData.youtube,
+        name: user.name,
+        image: user.image,
+        rating: averageRating,
+        reviewsCount: reviewsCount,
+        title: user.title || "Service Provider",
+        description: user.description || "No description available.",
+        phone: user.phone || "Not provided",
+        altPhone: user.altPhone || "Not provided",
+        email: user.email || "Not provided",
+        media: user.media || [],
+        reviews: reviews,
+        website: user.website || "",
+        facebook: user.facebook || "",
+        youtube: user.youtube || "",
+        twitter: user.twitter || "",
+        instagram: user.instagram || "",
     };
 
     return (
@@ -72,41 +61,38 @@ export function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewMod
             <DialogContent className="fixed right-0 top-0 z-50 h-full w-[725px] translate-x-0 translate-y-0 border-l bg-white p-0 shadow-2xl duration-300 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 left-auto rounded-l-2xl rounded-r-none sm:max-w-[725px]">
                 <div className="h-full overflow-y-auto p-6">
                     <div className="flex justify-between items-center mb-6">
-                        {/* Close button is handled by DialogContent default close button, but we can customize or hide it if needed.
-                            The design shows a custom header "Profile Preview" and a close button.
-                            DialogContent usually adds a close button. Let's rely on that or hide it and add our own if strictly needed.
-                            For now, we'll add the header text.
-                         */}
                         <DialogTitle className="text-xl font-bold text-gray-900">Profile Preview</DialogTitle>
                     </div>
 
                     <div className="flex flex-col items-center text-center mb-8">
-                        <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-100 mb-4 border-4 border-white shadow-sm">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-100 mb-4 border-4 border-white shadow-sm flex items-center justify-center">
                             {displayUser.image ? (
                                 <FallbackImage src={getBackendImageUrl(displayUser.image)} alt={displayUser.name} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-blue-500">
+                                <span className="text-3xl font-bold text-blue-500">
                                     {displayUser.name.charAt(0).toUpperCase()}
-                                </div>
+                                </span>
                             )}
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-1">{displayUser.name}</h2>
                         <p className="text-gray-500 text-sm mb-2">{displayUser.title}</p>
                         <div className="flex items-center gap-1 mb-4">
                             <div className="flex">
-                                {[1, 2, 3, 4].map((_, i) => (
-                                    <Star key={i} className="w-4 h-4 fill-[#FFB800] text-[#FFB800]" />
-                                ))}
-                                <Star className="w-4 h-4 fill-gray-200 text-gray-200" />
+                                {Array.from({ length: 5 }).map((_, i) => {
+                                    const ratingVal = parseFloat(displayUser.rating);
+                                    return (
+                                        <Star key={i} className={`w-4 h-4 ${i < Math.round(ratingVal) ? 'fill-[#FFB800] text-[#FFB800]' : 'fill-gray-200 text-gray-200'}`} />
+                                    );
+                                })}
                             </div>
-                            <span className="text-sm font-medium text-gray-900 ml-1">{displayUser.rating || 4.0}</span>
+                            <span className="text-sm font-medium text-gray-900 ml-1">{displayUser.rating}</span>
                             <span className="text-sm text-gray-400">({displayUser.reviewsCount})</span>
                         </div>
 
                         {/* Social Links */}
                         <div className="flex items-center gap-3">
                             {displayUser.website && (
-                                <a href={displayUser.website} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#C69C2E] hover:text-white transition-colors">
+                                <a href={displayUser.website.startsWith('http') ? displayUser.website : `https://${displayUser.website}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#C69C2E] hover:text-white transition-colors">
                                     <Globe className="w-4 h-4" />
                                 </a>
                             )}
@@ -175,23 +161,76 @@ export function ProfilePreviewModal({ isOpen, onClose, user }: ProfilePreviewMod
                         </div>
 
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Media</h3>
-                            <div className="grid grid-cols-3 gap-3">
-                                {/* Using placeholder colors/gradients for mock media since we don't have real images */}
-                                <div className="aspect-square rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 overflow-hidden relative group cursor-pointer">
-                                    {/* Mock content */}
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Media</h3>
+                            {displayUser.media && displayUser.media.length > 0 ? (
+                                <div className="grid grid-cols-3 gap-3">
+                                    {displayUser.media.map((item: any, idx: number) => {
+                                        const isVideo = item.media_type?.startsWith("video");
+                                        const url = getBackendImageUrl(item.s3_key);
+                                        return (
+                                            <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-gray-100 relative group cursor-pointer border border-gray-100">
+                                                {isVideo ? (
+                                                    <video src={url} className="w-full h-full object-cover" preload="metadata" />
+                                                ) : (
+                                                    <FallbackImage src={url} alt={`Portfolio Media ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                )}
+                                                {isVideo && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                                                            <Play className="w-3 h-3 text-black fill-black ml-0.5" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                <div className="aspect-square rounded-xl bg-black overflow-hidden relative group cursor-pointer">
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                                            <Play className="w-3 h-3 text-black fill-black ml-0.5" />
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">No media uploaded to portfolio.</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reviews & Feedback</h3>
+                            {displayUser.reviews && displayUser.reviews.length > 0 ? (
+                                <div className="space-y-4">
+                                    {displayUser.reviews.map((rev: any, idx: number) => (
+                                        <div key={rev.id || idx} className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shrink-0">
+                                                        {rev.reviewer_avatar ? (
+                                                            <FallbackImage src={getBackendImageUrl(rev.reviewer_avatar)} alt={rev.reviewer_name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-gray-500">{rev.reviewer_name?.charAt(0).toUpperCase() || 'A'}</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-gray-900 leading-tight">{rev.reviewer_name}</h4>
+                                                        <p className="text-[10px] text-gray-400">
+                                                            {new Date(rev.created_at).toLocaleDateString(undefined, {
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-0.5">
+                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                        <Star key={i} className={`w-3.5 h-3.5 ${i < rev.rating ? 'fill-[#FFB800] text-[#FFB800]' : 'fill-gray-200 text-gray-200'}`} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-600 leading-relaxed pl-10">
+                                                {rev.comment}
+                                            </p>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
-                                <div className="aspect-square rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 overflow-hidden relative group cursor-pointer">
-                                    {/* Mock content */}
-                                </div>
-                            </div>
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">No reviews yet.</p>
+                            )}
                         </div>
                     </div>
                 </div>

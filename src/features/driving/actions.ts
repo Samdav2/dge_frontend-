@@ -33,6 +33,32 @@ async function getAuthHeaders() {
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+async function apiCall(endpoint: string, method: string = 'GET', body?: any) {
+    const headers = await getAuthHeaders();
+    if (!headers) return { success: false, error: "Unauthorized" };
+
+    const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}${endpoint}`;
+    try {
+        const response = await fetch(targetUrl, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Request failed" };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (error) {
+        console.error(`API Call error for ${endpoint}:`, error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+
 export async function getDriversNearby(lat: number, lon: number, radius: number = 5.0): Promise<DriverNearbyResponse[]> {
     console.log(`ServerAction: getDriversNearby called with lat=${lat}, lon=${lon}, radius=${radius}`);
 
@@ -117,6 +143,18 @@ export async function reverseGeocode(lat: number, lon: number) {
         console.error("ServerAction: Reverse Geocode Failed:", error);
         return null;
     }
+}
+
+export async function getActiveTrip() {
+    return await apiCall('/drivers/trips/active', 'GET');
+}
+
+export async function cancelTrip(tripId: string, reason?: string) {
+    return await apiCall(`/drivers/trips/${tripId}/cancel`, 'POST', { trip_id: tripId, reason });
+}
+
+export async function completeTrip(tripId: string, finalFare?: number) {
+    return await apiCall(`/drivers/trips/${tripId}/complete`, 'POST', { trip_id: tripId, final_fare: finalFare });
 }
 
 export async function getDriverProfile() {
@@ -257,4 +295,153 @@ export async function getMyTripsAsDriver() {
         console.error("Get driver trips error:", error);
         return { success: false, error: "Network error" };
     }
+}
+
+export async function broadcastRideIntent(data: {
+    pickup_lat: number;
+    pickup_lng: number;
+    dropoff_lat: number;
+    dropoff_lng: number;
+    pickup_address?: string;
+    dropoff_address?: string;
+}) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/trips/broadcast_intent`;
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to broadcast ride intent" };
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Broadcast ride intent error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function pingDriverLocation(data: { latitude: number; longitude: number; is_available: boolean }) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/ping`;
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            return { success: false, error: "Failed to ping location" };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Ping location error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function requestRide(data: {
+    pickup_lat: number;
+    pickup_lng: number;
+    dropoff_lat: number;
+    dropoff_lng: number;
+    pickup_address?: string;
+    dropoff_address?: string;
+    driver_id?: string;
+    negotiated_fare?: number;
+}) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/trips/request`;
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to request ride" };
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Request ride error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function acceptRide(tripId: string) {
+    const headers = await getAuthHeaders();
+    if (!headers) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const targetUrl = `${apiUrl.replace('0.0.0.0', '127.0.0.1')}/drivers/trips/${tripId}/accept`;
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || "Failed to accept ride" };
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Accept ride error:", error);
+        return { success: false, error: "Network error" };
+    }
+}
+
+export async function arriveAtPickup(tripId: string) {
+    return await apiCall(`/drivers/trips/${tripId}/arrive`, 'POST');
+}
+
+export async function startTrip(tripId: string) {
+    return await apiCall(`/drivers/trips/${tripId}/start`, 'POST');
+}
+
+export async function confirmStartTrip(tripId: string) {
+    return await apiCall(`/drivers/trips/${tripId}/confirm_start`, 'POST');
+}
+
+export async function submitTripReview(tripId: string, rating: number, comment: string) {
+    return await apiCall(`/drivers/trips/${tripId}/review`, 'POST', { rating, comment });
+}
+
+export async function getDriverPublicProfile(driverId: string) {
+    return await apiCall(`/drivers/${driverId}/public-profile`, 'GET');
+}
+
+export async function counterRide(tripId: string, counterFare: number) {
+    return await apiCall(`/drivers/trips/${tripId}/counter`, 'POST', { counter_fare: counterFare });
+}
+
+export async function acceptCounterOffer(tripId: string) {
+    return await apiCall(`/drivers/trips/${tripId}/accept_counter`, 'POST');
 }

@@ -14,6 +14,7 @@ import {
     LogOut
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useChatContext } from "@/providers/ChatProvider";
 
 const MENU_ITEMS = [
     { icon: LayoutGrid, label: "Marketplace", href: "/dashboard/marketplace" },
@@ -34,6 +35,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ mobile }: DashboardSidebarProps) {
     const pathname = usePathname();
+    const { unreadRideRequests } = useChatContext();
 
     const baseClasses = "bg-white border-r border-gray-100 h-screen flex flex-col";
     const desktopClasses = "fixed left-0 top-0 w-64 z-30 hidden lg:flex";
@@ -57,13 +59,20 @@ export function DashboardSidebar({ mobile }: DashboardSidebarProps) {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
                                 ? "bg-[#C69C2E] text-white shadow-md"
                                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                                 }`}
                         >
-                            <item.icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-400"}`} />
-                            {item.label}
+                            <div className="flex items-center gap-3">
+                                <item.icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-400"}`} />
+                                {item.label}
+                            </div>
+                            {item.label === "Driving" && unreadRideRequests > 0 && (
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                    {unreadRideRequests}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}

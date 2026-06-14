@@ -18,6 +18,8 @@ interface ChatContextType {
     startOutboundCall: (targetUserId: string, targetUserName?: string, targetUserAvatar?: string, conversationId?: string) => void;
     latestNotification: Record<string, unknown> | null;
     latestNegotiationUpdate: string | null;
+    unreadRideRequests: number;
+    clearUnreadRideRequests: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -36,7 +38,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const [newMessage, setNewMessage] = useState<Message | null>(null);
     const [latestNotification, setLatestNotification] = useState<Record<string, unknown> | null>(null);
     const [latestNegotiationUpdate, setLatestNegotiationUpdate] = useState<string | null>(null);
+    const [unreadRideRequests, setUnreadRideRequests] = useState(0);
     const router = useRouter();
+
+    const clearUnreadRideRequests = useCallback(() => {
+        setUnreadRideRequests(0);
+    }, []);
 
     // Call state exactly as it was in InboxLayout
     const [isCallModalOpen, setIsCallModalOpen] = useState(false);
@@ -159,6 +166,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const handleNotificationReceived = useCallback((notification: Record<string, unknown>) => {
         console.log("Global notification received:", notification);
         setLatestNotification(notification);
+        if (notification.type === 'ride_requested') {
+            setUnreadRideRequests(prev => prev + 1);
+        }
     }, []);
 
     // WebSocket connection operates globally now
@@ -252,6 +262,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         startOutboundCall,
         latestNotification,
         latestNegotiationUpdate,
+        unreadRideRequests,
+        clearUnreadRideRequests,
     };
 
     return (

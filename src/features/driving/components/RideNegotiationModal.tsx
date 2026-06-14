@@ -8,10 +8,36 @@ import { X, ArrowDownUp, MessageSquare, Sparkles } from "lucide-react";
 
 interface RideNegotiationModalProps {
     onClose: () => void;
-    onSubmit: () => void;
+    onSubmit: (fare: number) => void;
+    estimatedFare?: number;
 }
 
-export function RideNegotiationModal({ onClose, onSubmit }: RideNegotiationModalProps) {
+import { getUserWallet } from "@/features/wallet/actions";
+
+export function RideNegotiationModal({ onClose, onSubmit, estimatedFare = 85000 }: RideNegotiationModalProps) {
+    const [offer, setOffer] = React.useState<string>("");
+    const [walletBalance, setWalletBalance] = React.useState<number | null>(null);
+
+    React.useEffect(() => {
+        async function fetchWallet() {
+            const res = await getUserWallet();
+            if (res.success && res.data && res.data.length > 0) {
+                const depositWallet = res.data.find((w: any) => w.wallet_type === "deposit");
+                if (depositWallet) {
+                    setWalletBalance(depositWallet.balance_cents / 100);
+                } else {
+                    setWalletBalance(0);
+                }
+            } else {
+                setWalletBalance(0);
+            }
+        }
+        fetchWallet();
+    }, []);
+
+    const offerValue = parseFloat(offer) || 0;
+    const isOfferValid = walletBalance !== null && offerValue <= walletBalance && offerValue > 0;
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md relative shadow-2xl overflow-hidden">
@@ -40,7 +66,7 @@ export function RideNegotiationModal({ onClose, onSubmit }: RideNegotiationModal
                         <div>
                             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Initial Price</label>
                             <div className="h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center px-4 text-gray-900 font-bold text-sm">
-                                ₦85,000
+                                ₦{estimatedFare.toLocaleString()}
                             </div>
                         </div>
 
@@ -49,8 +75,17 @@ export function RideNegotiationModal({ onClose, onSubmit }: RideNegotiationModal
                             <Input
                                 type="number"
                                 placeholder="Enter your price"
-                                className="h-12 bg-white border-gray-200 rounded-xl text-sm focus:ring-[#C69C2E]/20 focus:border-[#C69C2E]/30"
+                                value={offer}
+                                onChange={(e) => setOffer(e.target.value)}
+                                className={`h-12 bg-white rounded-xl text-sm focus:ring-[#C69C2E]/20 focus:border-[#C69C2E]/30 ${
+                                    walletBalance !== null && offerValue > walletBalance 
+                                    ? "border-red-400 focus:border-red-400 focus:ring-red-400/20" 
+                                    : "border-gray-200"
+                                }`}
                             />
+                            {walletBalance !== null && offerValue > walletBalance && (
+                                <p className="text-xs text-red-500 mt-1.5 font-medium">Your offer exceeds your wallet balance of ₦{walletBalance.toLocaleString()}</p>
+                            )}
                         </div>
 
                         <div>
@@ -74,8 +109,9 @@ export function RideNegotiationModal({ onClose, onSubmit }: RideNegotiationModal
                             Cancel
                         </Button>
                         <Button
-                            onClick={onSubmit}
-                            className="flex-1 h-11 rounded-xl font-semibold text-sm bg-[#C69C2E] hover:bg-[#b08b29] text-white transition-all hover:shadow-lg hover:shadow-[#C69C2E]/20"
+                            onClick={() => isOfferValid && onSubmit(offerValue)}
+                            disabled={!isOfferValid}
+                            className="flex-1 h-11 rounded-xl font-semibold text-sm bg-[#C69C2E] hover:bg-[#b08b29] text-white transition-all hover:shadow-lg hover:shadow-[#C69C2E]/20 disabled:opacity-50"
                         >
                             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                             Send Offer

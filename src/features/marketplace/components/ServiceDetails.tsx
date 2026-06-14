@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { NegotiationModal } from "./NegotiationModal";
 import { SuccessModal } from "./SuccessModal";
+import { ProfilePreviewModal } from "./ProfilePreviewModal";
 import { createNegotiation } from "@/features/negotiation/actions";
 import { getBackendImageUrl } from "@/lib/imageUtils";
 import { Loader2 } from "lucide-react";
@@ -40,6 +41,10 @@ interface ServiceDetailsProps {
             twitter?: string;
             instagram?: string;
             youtube?: string;
+            title?: string;
+            description?: string;
+            media?: any[];
+            reviewsList?: any[];
         };
     };
     isPublic?: boolean;
@@ -50,6 +55,7 @@ export function ServiceDetails({ service, isPublic = false }: ServiceDetailsProp
     const [isNegotiationSuccessOpen, setIsNegotiationSuccessOpen] = useState(false);
     const [isApplicationSuccessOpen, setIsApplicationSuccessOpen] = useState(false);
     const [isApplying, setIsApplying] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const { showModal } = useStatusModal();
     const router = useRouter();
 
@@ -175,6 +181,47 @@ export function ServiceDetails({ service, isPublic = false }: ServiceDetailsProp
                                     <span className="text-gray-500">Category: </span>
                                     <span className="font-medium text-gray-900">{service.category}</span>
                                 </div>
+
+                                {service.author.reviewsList && service.author.reviewsList.length > 0 && (
+                                    <div className="pt-8 border-t border-gray-100 mt-8">
+                                        <h3 className="text-xl font-bold text-gray-900 mb-6">Service Reviews</h3>
+                                        <div className="space-y-4">
+                                            {service.author.reviewsList.map((rev: any, idx: number) => (
+                                                <div key={rev.id || idx} className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shrink-0">
+                                                                {rev.reviewer_avatar ? (
+                                                                    <FallbackImage src={getBackendImageUrl(rev.reviewer_avatar)} alt={rev.reviewer_name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span className="text-sm font-bold text-gray-500">{rev.reviewer_name?.charAt(0).toUpperCase() || 'A'}</span>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-sm font-bold text-gray-900 leading-tight">{rev.reviewer_name}</h4>
+                                                                <p className="text-xs text-gray-400">
+                                                                    {new Date(rev.created_at).toLocaleDateString(undefined, {
+                                                                        year: 'numeric',
+                                                                        month: 'short',
+                                                                        day: 'numeric'
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-0.5">
+                                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                                <Star key={i} className={`w-4 h-4 ${i < rev.rating ? 'fill-[#FFB800] text-[#FFB800]' : 'fill-gray-200 text-gray-200'}`} />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 leading-relaxed pl-[3.25rem]">
+                                                        {rev.comment}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-4 mt-8">
@@ -207,7 +254,10 @@ export function ServiceDetails({ service, isPublic = false }: ServiceDetailsProp
                 {/* Right Column - Sidebar */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-3xl p-6 border border-gray-100">
-                        <div className="flex items-start gap-4 mb-6">
+                        <div 
+                            className="flex items-start gap-4 mb-6 cursor-pointer hover:bg-gray-50 p-2 -m-2 rounded-xl transition-colors"
+                            onClick={() => setIsProfileModalOpen(true)}
+                        >
                             <div className="w-16 h-16 rounded-full overflow-hidden shrink-0">
                                 <FallbackImage src={getBackendImageUrl(service.author.image)} alt={service.author.name} className="w-full h-full object-cover" />
                             </div>
@@ -292,6 +342,15 @@ export function ServiceDetails({ service, isPublic = false }: ServiceDetailsProp
                     </div>
                 </div>
             </div>
+
+            <ProfilePreviewModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                user={{
+                    ...service.author,
+                    reviews: service.author.reviewsList
+                }}
+            />
 
             <NegotiationModal
                 isOpen={isNegotiationModalOpen}

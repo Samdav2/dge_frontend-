@@ -50,33 +50,74 @@ const routeCoordinates: [number, number][] = [
     [6.227, 7.087], // End (Nnewi)
 ];
 
-function MapController({ center }: { center?: [number, number] | null }) {
+function MapController({ center, bounds }: { center?: [number, number] | null; bounds?: L.LatLngBoundsExpression | null }) {
     const map = useMap();
 
     useEffect(() => {
-        if (center) {
+        if (bounds) {
+            map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 1.5 });
+        } else if (center) {
             map.flyTo(center, 14, {
                 animate: true,
                 duration: 1.5
             });
         }
-    }, [center, map]);
+    }, [center, bounds, map]);
 
     return null;
 }
 
-export default function MapWrapper({ center }: { center?: [number, number] | null }) {
+interface MapWrapperProps {
+    center?: [number, number] | null;
+    liveDrivers?: { id: string; lat: number; lng: number; details?: any }[];
+    trip?: any | null;
+    driverLocation?: { lat: number; lng: number } | null;
+}
+
+export default function MapWrapper({ center, liveDrivers = [], trip, driverLocation }: MapWrapperProps) {
+    // Generate route points if there's an active trip
+    const getRoutePoints = (startLat: number, startLng: number, endLat: number, endLng: number) => {
+        const points: [number, number][] = [];
+        const steps = 15;
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            points.push([
+                startLat + (endLat - startLat) * t,
+                startLng + (endLng - startLng) * t
+            ]);
+        }
+        return points;
+    };
+
+    const routeCoords = trip 
+        ? getRoutePoints(trip.pickup_lat, trip.pickup_lng, trip.dropoff_lat, trip.dropoff_lng)
+        : routeCoordinates;
+
+    // Calculate map bounds for the trip
+    const mapBounds = trip
+        ? L.latLngBounds([
+            [trip.pickup_lat, trip.pickup_lng],
+            [trip.dropoff_lat, trip.dropoff_lng]
+          ])
+        : null;
+
+    // Determine current driver marker position
+    const currentDriverPos: [number, number] | null = driverLocation 
+        ? [driverLocation.lat, driverLocation.lng]
+        : trip && trip.status === 'ACTIVE'
+            ? [trip.pickup_lat, trip.pickup_lng] // Fallback to start
+            : null;
+
     return (
         <MapContainer
-            center={[6.224, 7.084]}
+            center={trip ? [trip.pickup_lat, trip.pickup_lng] : [6.224, 7.084]}
             zoom={14}
             style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={false}
             zoomControl={true}
         >
-            <MapController center={center} />
+            <MapController center={center} bounds={mapBounds} />
 
-            {/* Use light, clean map style */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -85,48 +126,73 @@ export default function MapWrapper({ center }: { center?: [number, number] | nul
             />
 
             {/* Route polyline */}
-            <Polyline
-                positions={routeCoordinates}
-                pathOptions={{
-                    color: '#C69C2E',
-                    weight: 4,
-                    opacity: 0.8,
-                    dashArray: '10, 10',
-                    lineCap: 'round',
-                    lineJoin: 'round'
-                }}
-            />
+            {(trip || routeCoords.length > 0) && (
+                <Polyline
+                    positions={routeCoords}
+                    pathOptions={{
+                        color: '#C69C2E',
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray: '10, 10',
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }}
+                />
+            )}
 
-            {/* Start location */}
-            <Marker position={[6.222, 7.082]} icon={locationIcon}>
-                <Popup>
-                    <div className="text-sm">
-                        <div className="font-bold text-gray-900">Pickup Location</div>
-                        <div className="text-gray-500">Ifite-awka, Anambra State</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {/* Start location / Pickup */}
+            {trip ? (
+                <Marker position={[trip.pickup_lat, trip.pickup_lng]} icon={locationIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">Pickup Location</div>
+                            <div className="text-gray-500">{trip.pickup_address || "Pickup"}</div>
+                        </div>
+                    </Popup>
+                </Marker>
+            ) : (
+                <Marker position={[6.222, 7.082]} icon={locationIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">Pickup Location</div>
+                            <div className="text-gray-500">Ifite-awka, Anambra State</div>
+                        </div>
+                    </Popup>
+                </Marker>
+            )}
 
-            {/* End location */}
-            <Marker position={[6.227, 7.087]} icon={locationIcon}>
-                <Popup>
-                    <div className="text-sm">
-                        <div className="font-bold text-gray-900">Destination</div>
-                        <div className="text-gray-500">Nnewi, Anambra State</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {/* End location / Destination */}
+            {trip ? (
+                <Marker position={[trip.dropoff_lat, trip.dropoff_lng]} icon={locationIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">Destination</div>
+                            <div className="text-gray-500">{trip.dropoff_address || "Dropoff"}</div>
+                        </div>
+                    </Popup>
+                </Marker>
+            ) : (
+                <Marker position={[6.227, 7.087]} icon={locationIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">Destination</div>
+                            <div className="text-gray-500">Nnewi, Anambra State</div>
+                        </div>
+                    </Popup>
+                </Marker>
+            )}
 
-            {/* Driver cars with pulse effect */}
-            <Marker position={[6.225, 7.085]} icon={carIcon}>
-                <Popup>
-                    <div className="text-sm">
-                        <div className="font-bold text-gray-900">David Johnson</div>
-                        <div className="text-gray-500">Toyota Corolla • ABJ-432KD</div>
-                        <div className="text-[#C69C2E] font-medium mt-1">4 mins away</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {/* Show active trip driver marker */}
+            {currentDriverPos && (
+                <Marker position={currentDriverPos} icon={carIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">Your Ride</div>
+                            <div className="text-gray-500">En route</div>
+                        </div>
+                    </Popup>
+                </Marker>
+            )}
 
             {/* Show selected location marker if available */}
             {center && (
@@ -139,25 +205,58 @@ export default function MapWrapper({ center }: { center?: [number, number] | nul
                 </Marker>
             )}
 
-            <Marker position={[6.220, 7.080]} icon={carIcon}>
-                <Popup>
-                    <div className="text-sm">
-                        <div className="font-bold text-gray-900">Sophia Turner</div>
-                        <div className="text-gray-500">Honda Civic • ABJ-298LM</div>
-                        <div className="text-[#C69C2E] font-medium mt-1">6 mins away</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {/* Render other live drivers only when NOT in active trip */}
+            {!trip && liveDrivers.map((driver) => (
+                <Marker key={driver.id} position={[driver.lat, driver.lng]} icon={carIcon}>
+                    <Popup>
+                        <div className="text-sm">
+                            <div className="font-bold text-gray-900">{driver.details?.name || "Live Driver"}</div>
+                            {driver.details && (
+                                <div className="text-gray-500">
+                                    {driver.details.car_name} {driver.details.car_model}
+                                </div>
+                            )}
+                            <div className="text-[#C69C2E] font-medium mt-1">
+                                {driver.details?.rating ? `★ ${driver.details.rating}` : "ID: " + driver.id.slice(0, 8)}
+                            </div>
+                        </div>
+                    </Popup>
+                </Marker>
+            ))}
 
-            <Marker position={[6.230, 7.090]} icon={carIcon}>
-                <Popup>
-                    <div className="text-sm">
-                        <div className="font-bold text-gray-900">Michael Lee</div>
-                        <div className="text-gray-500">Ford Focus • ABJ-156NK</div>
-                        <div className="text-[#C69C2E] font-medium mt-1">8 mins away</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {/* Fallback drivers if no live drivers found (just for demo purposes) */}
+            {!trip && liveDrivers.length === 0 && (
+                <>
+                    <Marker position={[6.225, 7.085]} icon={carIcon}>
+                        <Popup>
+                            <div className="text-sm">
+                                <div className="font-bold text-gray-900">David Johnson</div>
+                                <div className="text-gray-500">Toyota Corolla • ABJ-432KD</div>
+                                <div className="text-[#C69C2E] font-medium mt-1">4 mins away</div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                    <Marker position={[6.220, 7.080]} icon={carIcon}>
+                        <Popup>
+                            <div className="text-sm">
+                                <div className="font-bold text-gray-900">Sophia Turner</div>
+                                <div className="text-gray-500">Honda Civic • ABJ-298LM</div>
+                                <div className="text-[#C69C2E] font-medium mt-1">6 mins away</div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                    <Marker position={[6.230, 7.090]} icon={carIcon}>
+                        <Popup>
+                            <div className="text-sm">
+                                <div className="font-bold text-gray-900">Michael Lee</div>
+                                <div className="text-gray-500">Ford Focus • ABJ-156NK</div>
+                                <div className="text-[#C69C2E] font-medium mt-1">8 mins away</div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                </>
+            )}
         </MapContainer>
     );
 }
+

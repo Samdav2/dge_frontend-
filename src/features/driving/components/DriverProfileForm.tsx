@@ -4,7 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Car, AlertTriangle, CheckCircle, Shield, Star, TrendingUp } from "lucide-react";
 import { getDriverProfile, createDriverProfile, updateDriverProfile } from "../actions";
 
-export function DriverProfileForm() {
+interface DriverProfileFormProps {
+    isAccepting?: boolean;
+    onToggleAccepting?: (val: boolean) => void;
+}
+
+export function DriverProfileForm({ isAccepting, onToggleAccepting }: DriverProfileFormProps = {}) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -113,16 +118,35 @@ export function DriverProfileForm() {
                 {/* Header with accent */}
                 <div className="h-1 bg-gradient-to-r from-[#C69C2E] to-[#E5B84D]" />
                 <div className="p-6 lg:p-8 space-y-6">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-[#C69C2E]/10 flex items-center justify-center">
-                                <Car className="w-5 h-5 text-[#C69C2E]" />
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-[#C69C2E]/10 flex items-center justify-center">
+                                    <Car className="w-5 h-5 text-[#C69C2E]" />
+                                </div>
+                                Vehicle Information
+                            </h2>
+                            <p className="text-xs text-gray-400 mt-1 ml-[46px]">
+                                {isExisting ? 'Update your vehicle details' : 'Set up your driver profile to start earning'}
+                            </p>
+                        </div>
+
+                        {/* Accept Ride Requests Toggle */}
+                        {isExisting && onToggleAccepting && (
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-semibold text-gray-700">Accepting Rides</span>
+                                <button
+                                    type="button"
+                                    onClick={() => onToggleAccepting(!isAccepting)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isAccepting ? 'bg-green-500' : 'bg-gray-200'}`}
+                                >
+                                    <span className="sr-only">Accept Ride Requests</span>
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isAccepting ? 'translate-x-5' : 'translate-x-0'}`}
+                                    />
+                                </button>
                             </div>
-                            Vehicle Information
-                        </h2>
-                        <p className="text-xs text-gray-400 mt-1 ml-[46px]">
-                            {isExisting ? 'Update your vehicle details' : 'Set up your driver profile to start earning'}
-                        </p>
+                        )}
                     </div>
 
                     {error && (

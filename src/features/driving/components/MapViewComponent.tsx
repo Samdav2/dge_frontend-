@@ -12,10 +12,25 @@ const MapWrapper = dynamic(() => import("./MapWrapper"), {
     ),
 });
 
-export function MapView({ center }: { center?: [number, number] | null }) {
+export function MapView({ 
+    center, 
+    liveDrivers = [],
+    trip = null,
+    driverLocation = null
+}: { 
+    center?: [number, number] | null; 
+    liveDrivers?: {id: string; lat: number; lng: number; details?: any}[];
+    trip?: any | null;
+    driverLocation?: { lat: number; lng: number } | null;
+}) {
     return (
         <div className="bg-gray-100 rounded-2xl overflow-hidden h-full min-h-[300px] md:min-h-[500px] relative z-0">
-            <MapWrapper center={center} />
+            <MapWrapper 
+                center={center} 
+                liveDrivers={liveDrivers} 
+                trip={trip}
+                driverLocation={driverLocation}
+            />
         </div>
     );
 }

@@ -56,7 +56,8 @@ export function RidesHistory() {
     };
 
     const getStatusConfig = (status: string) => {
-        switch (status) {
+        const upperStatus = status.toUpperCase();
+        switch (upperStatus) {
             case 'PENDING': return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-400', label: 'Pending' };
             case 'ACTIVE': return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', dot: 'bg-blue-400 animate-pulse', label: 'In Progress' };
             case 'COMPLETED': return { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100', dot: 'bg-green-400', label: 'Completed' };
@@ -68,18 +69,19 @@ export function RidesHistory() {
     const displayTrips = roleTab === 'rider' ? riderTrips : driverTrips;
     
     const filteredTrips = displayTrips.filter(trip => {
+        const tripStatus = trip.status.toUpperCase();
         if (statusTab === 'active') {
-            return trip.status === 'PENDING' || trip.status === 'ACTIVE';
+            return ['PENDING', 'ACTIVE', 'EN_ROUTE', 'ARRIVED', 'AWAITING_CONFIRMATION', 'IN_PROGRESS'].includes(tripStatus);
         } else {
-            return trip.status === 'COMPLETED' || trip.status === 'CANCELLED';
+            return tripStatus === 'COMPLETED' || tripStatus === 'CANCELLED';
         }
     });
 
     // Quick stats
     const totalTrips = displayTrips.length;
-    const completedTrips = displayTrips.filter(t => t.status === 'COMPLETED').length;
-    const totalSpent = displayTrips.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + (t.final_fare ?? t.estimated_fare), 0);
-    const totalDistance = displayTrips.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + t.distance_km, 0);
+    const completedTrips = displayTrips.filter(t => t.status.toUpperCase() === 'COMPLETED').length;
+    const totalSpent = displayTrips.filter(t => t.status.toUpperCase() === 'COMPLETED').reduce((sum, t) => sum + (t.final_fare ?? t.estimated_fare), 0);
+    const totalDistance = displayTrips.filter(t => t.status.toUpperCase() === 'COMPLETED').reduce((sum, t) => sum + t.distance_km, 0);
 
     if (loading) {
         return (
@@ -114,7 +116,7 @@ export function RidesHistory() {
                 <div className="flex gap-2 md:gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-4">
                     {[
                         { icon: Car, label: 'Completed', value: `${completedTrips}`, color: '#10B981' },
-                        { icon: TrendingUp, label: 'Total Spent', value: formatCurrency(totalSpent), color: '#C69C2E' },
+                        { icon: TrendingUp, label: roleTab === 'rider' ? 'Total Spent' : 'Total Earned', value: formatCurrency(totalSpent), color: '#C69C2E' },
                         { icon: Route, label: 'Distance', value: `${totalDistance.toFixed(0)} km`, color: '#3B82F6' },
                     ].map((stat, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 flex-shrink-0 min-w-0">

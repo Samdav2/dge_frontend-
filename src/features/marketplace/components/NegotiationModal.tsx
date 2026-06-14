@@ -23,19 +23,17 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
     const [negotiationPrice, setNegotiationPrice] = useState("");
     const [message, setMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const { showModal } = useStatusModal();
 
     const handleSubmit = async () => {
         if (!negotiationPrice || isNaN(Number(negotiationPrice))) {
-            showModal({
-                type: "error",
-                title: "Invalid Price",
-                message: "Please enter a valid negotiation price"
-            });
+            setErrorMsg("Please enter a valid negotiation price");
             return;
         }
 
         setIsSubmitting(true);
+        setErrorMsg(null);
 
         try {
             // Convert price to cents
@@ -53,19 +51,11 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
                 setMessage("");
                 onSubmit();
             } else {
-                showModal({
-                    type: "error",
-                    title: "Negotiation Failed",
-                    message: result.error || "Failed to create negotiation"
-                });
+                setErrorMsg(result.error || "Failed to create negotiation");
             }
         } catch (err) {
             console.error("Negotiation error:", err);
-            showModal({
-                type: "error",
-                title: "Unexpected Error",
-                message: "An unexpected error occurred while submitting your negotiation."
-            });
+            setErrorMsg("An unexpected error occurred while submitting your negotiation.");
         } finally {
             setIsSubmitting(false);
         }
@@ -74,6 +64,7 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
     const handleClose = () => {
         setNegotiationPrice("");
         setMessage("");
+        setErrorMsg(null);
         onClose();
     };
 
@@ -88,6 +79,11 @@ export function NegotiationModal({ isOpen, onClose, onSubmit, initialPrice, serv
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
+                    {errorMsg && (
+                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-700 font-medium leading-relaxed">
+                            {errorMsg}
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="initial-price" className="text-gray-700 font-medium">Initial Price</Label>
                         <Input

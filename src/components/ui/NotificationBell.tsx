@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, Trash2 } from "lucide-react";
+import { Bell, Check, Trash2, ExternalLink, Car } from "lucide-react";
 import { getNotifications, markNotificationAsRead, deleteNotification } from "@/features/notifications/actions";
 import { useChatContext } from "@/providers/ChatProvider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [activeNotification, setActiveNotification] = useState<any | null>(null);
     const { latestNotification } = useChatContext();
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -92,7 +95,11 @@ export function NotificationBell() {
                                     <div 
                                         key={notification.id} 
                                         className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer flex gap-3 ${!notification?.is_read ? 'bg-blue-50/30' : ''}`}
-                                        onClick={() => !notification?.is_read && handleMarkAsRead(notification.id)}
+                                        onClick={() => {
+                                            if (!notification?.is_read) handleMarkAsRead(notification.id);
+                                            setActiveNotification(notification);
+                                            setIsOpen(false);
+                                        }}
                                     >
                                         <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notification?.is_read ? 'bg-primary' : 'bg-transparent'}`} />
                                         <div className="flex-1">
@@ -128,6 +135,35 @@ export function NotificationBell() {
                     </div>
                 </div>
             )}
+            {/* Full Details Modal */}
+            <Dialog open={!!activeNotification} onOpenChange={(open) => !open && setActiveNotification(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Notification Details</DialogTitle>
+                        <DialogDescription>
+                            {activeNotification && new Date(activeNotification.created_at).toLocaleString()}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p className="text-sm text-gray-800">{activeNotification?.message}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setActiveNotification(null)}>Close</Button>
+                        {activeNotification?.metadataInfo?.type === 'ride_requested' && (
+                            <Button 
+                                onClick={() => {
+                                    setActiveNotification(null);
+                                    window.location.href = "/dashboard/driving";
+                                }}
+                                className="bg-[#C69C2E] hover:bg-[#A37B20]"
+                            >
+                                <Car className="w-4 h-4 mr-2" />
+                                View Ride Request
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

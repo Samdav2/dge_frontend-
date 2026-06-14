@@ -8,10 +8,12 @@ import { DriverNearbyResponse } from "../types";
 
 interface DriversListProps {
     onBack: () => void;
-    onContinue: () => void;
+    onContinue: (driver: DriverNearbyResponse) => void;
+    tripDistance?: number;
+    onViewDriverProfile: (driverId: string) => void;
 }
 
-export function DriversList({ onBack, onContinue }: DriversListProps) {
+export function DriversList({ onBack, onContinue, tripDistance = 0, onViewDriverProfile }: DriversListProps) {
     const [drivers, setDrivers] = useState<DriverNearbyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -135,8 +137,12 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
                     drivers.map((driver) => {
                         const isSelected = selectedDriver === driver.driver_id;
                         const arrivalMin = Math.ceil(driver.distance_km * 2);
-                        const estimatedPrice = Math.ceil(driver.distance_km * 500);
-                        const rating = (4.5 + Math.random() * 0.5).toFixed(1);
+                        const baseFare = 2000;
+                        const distanceFare = Math.ceil(tripDistance * 500);
+                        const subTotal = baseFare + distanceFare;
+                        const serviceFee = Math.ceil(subTotal * 0.1);
+                        const estimatedPrice = subTotal + serviceFee;
+                        const rating = (driver.rating ?? 5.0).toFixed(1);
 
                         return (
                             <div
@@ -150,22 +156,48 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
                             >
                                 <div className="flex items-center gap-3">
                                     {/* Driver Avatar */}
-                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                                        isSelected ? 'bg-[#C69C2E]/15 ring-2 ring-[#C69C2E]/20' : 'bg-gray-50'
-                                    }`}>
-                                        <Car className={`w-5 h-5 ${isSelected ? 'text-[#C69C2E]' : 'text-gray-400'}`} />
+                                    <div 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onViewDriverProfile(driver.driver_id);
+                                        }}
+                                        title="View Profile"
+                                        className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all cursor-pointer overflow-hidden hover:bg-gray-100 ${
+                                            isSelected ? 'bg-[#C69C2E]/15 ring-2 ring-[#C69C2E]/20' : 'bg-gray-50'
+                                        }`}
+                                    >
+                                        {driver.driver_avatar ? (
+                                            <img
+                                                src={driver.driver_avatar}
+                                                alt={driver.driver_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <Car className={`w-5 h-5 ${isSelected ? 'text-[#C69C2E]' : 'text-gray-400'}`} />
+                                        )}
                                     </div>
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <h3 className="text-sm font-bold text-gray-900 truncate">{driver.car_name}</h3>
+                                            <h3 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onViewDriverProfile(driver.driver_id);
+                                                }}
+                                                title="View Profile"
+                                                className="text-sm font-bold text-gray-900 truncate hover:text-[#C69C2E] hover:underline cursor-pointer"
+                                            >
+                                                {driver.driver_name}
+                                            </h3>
                                             <div className="flex items-center gap-0.5 flex-shrink-0">
                                                 <Star className="w-3 h-3 text-[#C69C2E] fill-[#C69C2E]" />
                                                 <span className="text-[10px] font-semibold text-gray-600">{rating}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                            <span>{driver.car_name}</span>
+                                            <span className="text-gray-200">•</span>
                                             <span className="flex items-center gap-1">
                                                 <MapPin className="w-2.5 h-2.5" />
                                                 {driver.distance_km.toFixed(1)} km
@@ -195,14 +227,16 @@ export function DriversList({ onBack, onContinue }: DriversListProps) {
                 )}
             </div>
 
-            {/* CTA */}
             <div className="px-4 py-4 border-t border-gray-50 bg-white">
                 <Button
-                    onClick={onContinue}
+                    onClick={() => {
+                        const driver = drivers.find(d => d.driver_id === selectedDriver);
+                        if (driver) onContinue(driver);
+                    }}
                     className="w-full bg-[#C69C2E] hover:bg-[#b08b29] text-white h-12 rounded-xl font-bold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#C69C2E]/20 group"
-                    disabled={drivers.length === 0}
+                    disabled={!selectedDriver && drivers.length > 0}
                 >
-                    {selectedDriver ? 'Continue with Driver' : 'Continue'}
+                    {selectedDriver ? 'Continue with Driver' : 'Select a Driver'}
                     <ChevronRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
             </div>

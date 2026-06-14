@@ -32,7 +32,8 @@ interface MarketplaceCardProps {
         youtube?: string;
         twitter?: string;
         instagram?: string;
-        media?: string[];
+        media?: any[];
+        reviews?: any[];
     };
     image: string;
     status?: string;

@@ -93,4 +93,7 @@ export interface WebSocketIncoming {
     // Notification & Negotiation fields
     notification?: Record<string, unknown>;
     negotiation_id?: string;
+    // Ride sharing fields
+    type?: string;
+    trip_id?: string;
 }

@@ -163,6 +163,9 @@ export function CategorySection({ categoryId, title, searchTerm, type, initialLi
                     const avatarUrl = profile?.avatar_url || service.user_picture;
                     const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(service.username || 'User')}&background=random`;
 
+                    const mediaFiles = portfolio.reduce((acc: any[], p: any) => acc.concat(p.media_files || []), []);
+                    const reviews = portfolio.reduce((acc: any[], p: any) => acc.concat(p.reviews || []), []);
+
                     return (
                         <MarketplaceCard
                             key={`${service.id}-${index}`}
@@ -188,8 +191,9 @@ export function CategorySection({ categoryId, title, searchTerm, type, initialLi
                                 youtube: socialLinks.youtube || "",
                                 twitter: socialLinks.twitter || "",
                                 instagram: socialLinks.instagram || "",
-                                reviewsCount: 0,
-                                media: []
+                                reviewsCount: reviews.length,
+                                media: mediaFiles,
+                                reviews: reviews
                             }}
                             category={service.categories?.[0]?.name || title}
                             status={service.status}
