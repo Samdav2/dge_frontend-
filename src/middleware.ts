@@ -4,17 +4,38 @@ import { auth } from './auth';
 
 export default auth((request) => {
     const isLoggedIn = !!request.auth;
+    const userRole = (request.auth?.user as any)?.role;
     const { pathname } = request.nextUrl;
 
-    const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+    const isAdminRoute = pathname.startsWith('/admin');
+    const isAdminLogin = pathname === '/admin/login';
+    const isDashboardRoute = pathname.startsWith('/dashboard');
     const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/team-login';
 
-    if (isProtectedRoute && !isLoggedIn) {
-        return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    if (isAuthPage && isLoggedIn) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+    if (isAdminRoute) {
+        if (!isLoggedIn) {
+            if (!isAdminLogin) {
+                return NextResponse.redirect(new URL('/admin/login', request.url));
+            }
+        } else {
+            if (userRole !== 'admin') {
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            } else if (isAdminLogin) {
+                return NextResponse.redirect(new URL('/admin/overview', request.url));
+            }
+        }
+    } else if (isDashboardRoute) {
+        if (!isLoggedIn) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+    } else if (isAuthPage) {
+        if (isLoggedIn) {
+            if (userRole === 'admin') {
+                return NextResponse.redirect(new URL('/admin/overview', request.url));
+            } else {
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            }
+        }
     }
 
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
