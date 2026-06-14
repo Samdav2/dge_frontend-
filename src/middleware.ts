@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { securityHeaders, getCspHeader } from './lib/security/headers';
+import { auth } from './auth';
 
-export function middleware(request: NextRequest) {
+export default auth((request) => {
+    const isLoggedIn = !!request.auth;
+    const { pathname } = request.nextUrl;
+
+    const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+    const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/team-login';
+
+    if (isProtectedRoute && !isLoggedIn) {
+        return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    if (isAuthPage && isLoggedIn) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
     const cspHeader = getCspHeader(nonce);
 
@@ -25,7 +39,7 @@ export function middleware(request: NextRequest) {
     response.headers.set(cspHeader.key, cspHeader.value);
 
     return response;
-}
+});
 
 export const config = {
     matcher: [
